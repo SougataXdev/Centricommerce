@@ -4,9 +4,9 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Debug @centricommerce/centricommerce with Nx",
+      "name": "Debug @centricommerce/auth-service with Nx",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["nx", "serve", "@centricommerce/centricommerce"],
+      "runtimeArgs": ["nx", "serve", "@centricommerce/auth-service"],
       "env": {
         "NODE_OPTIONS": "--inspect=9229"
       },
@@ -16,6 +16,24 @@
       "sourceMaps": true,
       "outFiles": [
         "${workspaceFolder}/apps/centricommerce/dist/**/*.(m|c|)js",
+        "!**/node_modules/**"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug @centricommerce/api-gateway with Nx",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["nx", "serve", "@centricommerce/api-gateway"],
+      "env": {
+        "NODE_OPTIONS": "--inspect=9230"
+      },
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true,
+      "outFiles": [
+        "${workspaceFolder}/apps/api-gateway/dist/**/*.(m|c|)js",
         "!**/node_modules/**"
       ]
     }

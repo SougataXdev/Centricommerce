@@ -1,10 +1,10 @@
 {
-  "name": "@centricommerce/centricommerce-e2e",
+  "name": "@centricommerce/api-gateway-e2e",
   "version": "0.0.1",
   "private": true,
   "nx": {
     "implicitDependencies": [
-      "@centricommerce/centricommerce"
+      "@centricommerce/api-gateway"
     ],
     "targets": {
       "e2e": {
@@ -13,12 +13,12 @@
           "{projectRoot}/test-output/jest/coverage"
         ],
         "options": {
-          "jestConfig": "apps/centricommerce-e2e/jest.config.ts",
+          "jestConfig": "apps/api-gateway-e2e/jest.config.ts",
           "passWithNoTests": true
         },
         "dependsOn": [
-          "@centricommerce/centricommerce:build",
-          "@centricommerce/centricommerce:serve"
+          "@centricommerce/api-gateway:build",
+          "@centricommerce/api-gateway:serve"
         ]
       }
     }

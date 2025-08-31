@@ -1,5 +1,5 @@
 {
-  "name": "@centricommerce/centricommerce",
+  "name": "@centricommerce/auth-service",
   "version": "0.0.1",
   "private": true,
   "nx": {
@@ -12,15 +12,15 @@
         "defaultConfiguration": "production",
         "options": {
           "platform": "node",
-          "outputPath": "apps/centricommerce/dist",
+          "outputPath": "apps/auth-service/dist",
           "format": [
             "cjs"
           ],
           "bundle": false,
-          "main": "apps/centricommerce/src/main.ts",
-          "tsConfig": "apps/centricommerce/tsconfig.app.json",
+          "main": "apps/auth-service/src/main.ts",
+          "tsConfig": "apps/auth-service/tsconfig.app.json",
           "assets": [
-            "apps/centricommerce/src/assets"
+            "apps/auth-service/src/assets"
           ],
           "esbuildOptions": {
             "sourcemap": true,
@@ -49,8 +49,8 @@
         "cache": true,
         "executor": "@nx/js:prune-lockfile",
         "outputs": [
-          "{workspaceRoot}/apps/centricommerce/dist/package.json",
-          "{workspaceRoot}/apps/centricommerce/dist/package-lock.json"
+          "{workspaceRoot}/apps/auth-service/dist/package.json",
+          "{workspaceRoot}/apps/auth-service/dist/package-lock.json"
         ],
         "options": {
           "buildTarget": "build"
@@ -62,7 +62,7 @@
         ],
         "cache": true,
         "outputs": [
-          "{workspaceRoot}/apps/centricommerce/dist/workspace_modules"
+          "{workspaceRoot}/apps/auth-service/dist/workspace_modules"
         ],
         "executor": "@nx/js:copy-workspace-modules",
         "options": {
@@ -84,15 +84,15 @@
           "build"
         ],
         "options": {
-          "buildTarget": "@centricommerce/centricommerce:build",
+          "buildTarget": "@centricommerce/auth-service:build",
           "runBuildTargetDependencies": false
         },
         "configurations": {
           "development": {
-            "buildTarget": "@centricommerce/centricommerce:build:development"
+            "buildTarget": "@centricommerce/auth-service:build:development"
           },
           "production": {
-            "buildTarget": "@centricommerce/centricommerce:build:production"
+            "buildTarget": "@centricommerce/auth-service:build:production"
           }
         }
       },
