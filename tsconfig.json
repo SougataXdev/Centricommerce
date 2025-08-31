@@ -4,16 +4,16 @@
   "files": [],
   "references": [
     {
-      "path": "./apps/centricommerce-e2e"
-    },
-    {
-      "path": "./apps/centricommerce"
-    },
-    {
       "path": "./apps/api-gateway-e2e"
     },
     {
       "path": "./apps/api-gateway"
+    },
+    {
+      "path": "./apps/auth-service-e2e"
+    },
+    {
+      "path": "./apps/auth-service"
     }
   ]
 }
