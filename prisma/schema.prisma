@@ -30,6 +30,7 @@ model Users {
   email     String   @unique
   name      String
   password  String?
+  usertype  String   @default("user")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   avatar    images?
