@@ -47,7 +47,8 @@
         ],
         "options": {
           "buildTarget": "@centricommerce/api-gateway:build",
-          "runBuildTargetDependencies": false
+          "runBuildTargetDependencies": false,
+          "inspect": false
         },
         "configurations": {
           "development": {

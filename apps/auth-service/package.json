@@ -85,7 +85,8 @@
         ],
         "options": {
           "buildTarget": "@centricommerce/auth-service:build",
-          "runBuildTargetDependencies": false
+          "runBuildTargetDependencies": false,
+          "inspect": false
         },
         "configurations": {
           "development": {
