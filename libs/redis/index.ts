@@ -1,9 +1,8 @@
 import Redis from "ioredis";
 
-// For Upstash Redis, use the full connection URL
+
 const redisUrl = process.env.REDIS_URL;
 
-// If REDIS_URL is not available, construct from individual components
 let redisConfig: string | Redis.RedisOptions;
 
 if (redisUrl) {
