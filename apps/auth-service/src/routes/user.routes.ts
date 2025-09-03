@@ -1,5 +1,4 @@
 import express from 'express';
-import { Request, Response } from 'express';
 import { validateSignupData } from '../helpers/auth.helper';
 import { userSignup } from '../controllers/auth.controller';
 

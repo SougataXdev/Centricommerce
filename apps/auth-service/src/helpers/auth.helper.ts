@@ -48,28 +48,42 @@ export const validateOtpEligibility = async (
   email: string,
   next: NextFunction
 ) => {
-  if (await redis.get(`otp_lock:${email}`)) {
-    return next(new ValidationError('Account is locked'));
-  }
+  try {
+    const otpLock = await redis.get(`otp_lock:${email}`);
+    if (otpLock) {
+      return next(new ValidationError('Account is locked'));
+    }
 
-  if (await redis.get(`otp_spam_lock:${email}`)) {
-    return next(new ValidationError('Too many request ! try again later'));
-  }
+    const spamLock = await redis.get(`otp_spam_lock:${email}`);
+    if (spamLock) {
+      return next(new ValidationError('Too many requests! Try again later'));
+    }
 
-  if (await redis.get(`otp_cooldown:${email}`)) {
-    return next(new ValidationError('wait for 1 minutes to generate new otp'));
+    const cooldown = await redis.get(`otp_cooldown:${email}`);
+    if (cooldown) {
+      return next(new ValidationError('Wait for 1 minute to generate new OTP'));
+    }
+  } catch (error) {
+    console.error('Redis error in validateOtpEligibility:', error);
+    return next(new ValidationError('Service temporarily unavailable'));
   }
 };
 
 
 export const recordOtpAttempt = async(email:string , next : NextFunction)=>{
-    const otpRequestKey = `otp_request_count:${email}`;
-    let otpRequests = parseInt((await redis.get(otpRequestKey)) || "0");
-    if(otpRequests >= 2){
-        await redis.set(`spam_lock:${email}` , "locked" , "EX" , 3600);
-    }
+    try {
+        const otpRequestKey = `otp_request_count:${email}`;
+        let otpRequests = parseInt((await redis.get(otpRequestKey)) || "0");
 
-    await redis.set(otpRequestKey , otpRequests+1 , "EX" , 3600 )
+        if(otpRequests >= 2){
+            await redis.set(`otp_spam_lock:${email}` , "locked" , "EX" , 3600);
+        }
+
+        await redis.set(otpRequestKey , otpRequests+1 , "EX" , 3600 );
+    } catch (error) {
+        console.error('Redis error in recordOtpAttempt:', error);
+        return next(new ValidationError('Service temporarily unavailable'));
+    }
 }
 
 export const sendOtp = async (
@@ -77,13 +91,23 @@ export const sendOtp = async (
   name: String,
   template: string
 ) => {
-  const generatedOtp = crypto.randomInt(100000, 999999).toString();
-  await sendEmail(email, 'verify your email', template, {
-    name: name,
-    otp: generatedOtp,
-  });
-  await redis.set(`otp:${email}`, generatedOtp, 'EX', 300);
-  await redis.set(`otp_cooldown:${email}`, 'true', 'EX', 60);
+  try {
+    const generatedOtp = crypto.randomInt(100000, 999999).toString();
+
+    await sendEmail(email, 'verify your email', template, {
+      name: name,
+      otp: generatedOtp,
+    });
+
+    await redis.set(`otp:${email}`, generatedOtp, 'EX', 300);
+    await redis.set(`otp_cooldown:${email}`, 'true', 'EX', 60);
+
+    console.log("otp sent successfully", generatedOtp);
+
+  } catch (error) {
+    console.error('Error in sendOtp:', error);
+    throw new Error('Failed to send OTP. Please try again.');
+  }
 };
 
 

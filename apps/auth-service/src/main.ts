@@ -2,6 +2,7 @@ import express from 'express';
 import cors from "cors"
 import { errorMiddleware } from '../../../libs/middlewares/errorMiddleware';
 import cookieParser from 'cookie-parser';
+import router from './routes/user.routes';
 
 const host = process.env.HOST ?? 'localhost';
 const port = process.env.PORT ? Number(process.env.PORT) : 6001;
@@ -21,9 +22,12 @@ app.use(express.json({ limit: '100mb' }));
 app.use(cookieParser());
 
 
+
 app.get('/', (req, res) => {
   res.send({ message: 'Hello from AUTH service' });
 });
+
+app.use("/api" , router);
 
 const server = app.listen(port, host, () => {
   console.log(`[ ready ] http://${host}:${port}`);

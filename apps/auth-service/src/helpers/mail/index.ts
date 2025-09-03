@@ -19,12 +19,15 @@ const transporter = nodemailer.createTransport({
 // TEMPLATE 
 
 const renderEmailTemplate = async (templateName: string, data: Record<string, any>): Promise<string> => {
-    const templatePath = path.join(__dirname, '..', 'utils', 'email-templates', `${templateName}.ejs`);
+    // Use project root + source path to ensure correct location
+    const templatePath = path.join(process.cwd(), 'apps', 'auth-service', 'src', 'utils', `${templateName}.ejs`);
     try {
         const rendered = await ejs.renderFile(templatePath, data);
         return rendered;
     } catch (error) {
         console.error('Error rendering email template:', error);
+        console.error('Template path:', templatePath);
+        console.error('Current working directory:', process.cwd());
         throw new Error(`Failed to render template: ${templateName}`);
     }
 };
