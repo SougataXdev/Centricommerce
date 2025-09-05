@@ -8,7 +8,6 @@ const SALT_ROUNDS = 12;
 export const sendSignupOtp = async (
   req: Request,
   res: Response,
-  _next: NextFunction
 ): Promise<void> => {
   try {
     const validated = req.validatedData;
@@ -58,7 +57,6 @@ export const sendSignupOtp = async (
 export const createUser = async (
   req: Request,
   res: Response,
-  _next: NextFunction
 ): Promise<void> => {
   try {
     const { name, email, password } = req.body;
