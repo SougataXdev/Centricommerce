@@ -2,12 +2,13 @@ import { Request, Response } from 'express';
 import prisma from '../../../../libs/prisma';
 import { sendOtp as sendOtpEmail } from '../helpers/auth.helper';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 const SALT_ROUNDS = 12;
 
 export const sendSignupOtp = async (
   req: Request,
-  res: Response,
+  res: Response
 ): Promise<void> => {
   try {
     const validated = req.validatedData;
@@ -56,7 +57,7 @@ export const sendSignupOtp = async (
 
 export const createUser = async (
   req: Request,
-  res: Response,
+  res: Response
 ): Promise<void> => {
   try {
     const { name, email, password } = req.body;
@@ -117,22 +118,49 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     });
 
     if (!user || !user.password) {
-      res.status(404).json({ success: false, message: 'User does not exist' });
+      res.status(401).json({ success: false, message: 'Invalid credentials' });
       return;
     }
 
     const isPassMatch = await bcrypt.compare(password, user.password);
-
     if (!isPassMatch) {
-      res.status(401).json({ success: false, message: 'Invalid password' });
+      res.status(401).json({ success: false, message: 'Invalid credentials' });
       return;
     }
 
-    // TODO: generate JWT / session and return it
+    const accessToken = jwt.sign(
+      { id: user.id },
+      process.env.ACCESS_TOKEN_SECRET!,
+      {
+        expiresIn: '15m',
+      }
+    );
+
+    const refreshToken = jwt.sign(
+      { email: user.email, id: user.id },
+      process.env.REFRESH_TOKEN_SECRET!,
+      { expiresIn: '7d' }
+    );
+
+    res.cookie('accessToken', accessToken, {
+      sameSite: 'strict',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 15 * 60 * 1000, // 15 minutes
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      sameSite: 'strict',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
     res.status(200).json({
       success: true,
       message: 'Login successful',
       user: { id: user.id, name: user.name, email: user.email },
+      accessToken, // optional for frontend
     });
   } catch (error) {
     console.error('Login error:', error);
