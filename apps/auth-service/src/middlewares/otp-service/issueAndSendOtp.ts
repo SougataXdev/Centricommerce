@@ -1,12 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
-import prisma from '../../../../libs/prisma';
+import prisma from '../../../../../libs/prisma';
 import {
   validateOtpEligibility,
   recordOtpAttempt,
   sendOtp,
-} from '../helpers/auth.helper';
+} from '../../helpers/auth.helper';
 
-export const userSignup = async (
+export const issueAndSendOtp = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -32,13 +32,10 @@ export const userSignup = async (
 
     await sendOtp(email, name, 'User-verification-mail');
 
-    res.status(200).json({
-      message: 'OTP sent successfully',
-      email: email,
-    });
-
+    console.log('otp sent successfully this is from {issueAndSendOtp} ');
+    next();
   } catch (error) {
-    console.error('Signup error:', error);
+    console.error('otp issuing error', error);
     res.status(500).json({
       message: 'Internal server error',
     });

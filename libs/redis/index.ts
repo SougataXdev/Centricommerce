@@ -1,33 +1,31 @@
-import Redis from "ioredis";
-
+import Redis, { RedisOptions } from "ioredis";
 
 const redisUrl = process.env.REDIS_URL;
 
-let redisConfig: string | Redis.RedisOptions;
+const options: RedisOptions = {
+    lazyConnect: false,
+    maxRetriesPerRequest: 3,
+    enableOfflineQueue: true,
+    connectTimeout: 60000,
+    commandTimeout: 5000,
+};
+
+let redis: Redis;
 
 if (redisUrl) {
-    redisConfig = redisUrl;
+    redis = new Redis(redisUrl, options);
 } else {
-    // Fallback to individual components
     const host = process.env.REDIS_HOST || '127.0.0.1';
     const port = parseInt(process.env.REDIS_PORT || '6379');
     const password = process.env.REDIS_PASSWORD;
-
-    redisConfig = {
+    redis = new Redis({
+        ...options,
         host,
         port,
         password,
-        tls: host.includes('upstash.io') ? {} : undefined, 
-    };
+        tls: host.includes('upstash.io') ? {} : undefined,
+    });
 }
-
-const redis = new Redis(redisConfig, {
-    lazyConnect: false,  
-    maxRetriesPerRequest: 3,
-    enableOfflineQueue: true,  
-    connectTimeout: 60000,  
-    commandTimeout: 5000,   
-});
 
 redis.on('error', (err) => {
     console.error('Redis connection error:', err.message);
