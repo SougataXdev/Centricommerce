@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import prisma from '../../../../libs/prisma';
 import { sendOtp as sendOtpEmail } from '../helpers/auth.helper';
 import bcrypt from 'bcrypt';

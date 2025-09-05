@@ -1,6 +1,6 @@
 import express from 'express';
 import { validateSignupData, verifyOtp } from '../helpers/auth.helper';
-import { createUser, sendSignupOtp } from '../controllers/user.controller';
+import { createUser, loginUser, sendSignupOtp } from '../controllers/user.controller';
 import {
   otpEligibilityGuard,
   otpRequestRecord,
@@ -20,5 +20,7 @@ router.post(
 
 
 router.post('/signup/verify', normalizeEmail, verifyOtp, createUser);
+
+router.post("/login" , loginUser);
 
 export default router;
