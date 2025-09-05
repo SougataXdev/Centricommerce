@@ -9,7 +9,7 @@ import proxy from 'express-http-proxy';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
-import { Request, Response } from 'express';
+import { Request } from 'express';
 
 declare global {
   namespace Express {

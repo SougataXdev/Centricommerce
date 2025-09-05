@@ -3,6 +3,7 @@ import prisma from '../../../../libs/prisma';
 import { sendOtp as sendOtpEmail } from '../helpers/auth.helper';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { z as zod } from 'zod';
 
 const SALT_ROUNDS = 12;
 
@@ -129,7 +130,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     }
 
     const accessToken = jwt.sign(
-      { id: user.id , role:"user" },
+      { id: user.id, role: 'user' },
       process.env.ACCESS_TOKEN_SECRET!,
       {
         expiresIn: '15m',
@@ -137,7 +138,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     );
 
     const refreshToken = jwt.sign(
-      { email: user.email, id: user.id , role:"user" },
+      { email: user.email, id: user.id, role: 'user' },
       process.env.REFRESH_TOKEN_SECRET!,
       { expiresIn: '7d' }
     );
@@ -146,14 +147,14 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       sameSite: 'strict',
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 15 * 60 * 1000, 
+      maxAge: 15 * 60 * 1000,
     });
 
     res.cookie('refreshToken', refreshToken, {
       sameSite: 'strict',
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 7 * 24 * 60 * 60 * 1000, 
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     res.status(200).json({
@@ -168,9 +169,89 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-// TODO: implement forgot-password flow in a dedicated controller if needed
+export const forgotPasswordRequest = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
 
+    const { email } = req.body;
 
-export const forgetPassword = async(req:Request , res:Response)=>{
-  
-}
+    if (!email) {
+      res.status(400).json({ success: false, message: 'Email is required' });
+      return;
+    }
+
+    const user = await prisma.users.findUnique({
+      where: { email },
+      select: { name: true, email: true },
+    });
+
+    if (user) {
+      await sendOtpEmail(
+        user.email,
+        user.name || 'User',
+        'User-forget-password-mail'
+      );
+    }
+
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: 'If the account exists, an OTP has been sent.',
+      });
+  } catch (error) {
+    console.error('Forgot password request error:', error);
+    res
+      .status(500)
+      .json({ success: false, message: 'Failed to process request' });
+  }
+};
+
+export const forgetPassword = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { email, newPassword } = req.body || {};
+
+    const schema = zod.object({
+      email: zod.string().email(),
+      newPassword: zod
+        .string()
+        .min(6, 'Password must be at least 6 characters long')
+        .max(100, 'Password must be at most 100 characters long'),
+    });
+
+    const parsed = schema.safeParse({ email, newPassword });
+    if (!parsed.success) {
+      res.status(400).json({ success: false, message: parsed.error.message });
+      return;
+    }
+
+    const user = await prisma.users.findUnique({
+      where: { email: parsed.data.email },
+      select: { id: true },
+    });
+    if (!user) {
+      res.status(404).json({ success: false, message: 'Account not found' });
+      return;
+    }
+
+    const hashed = await bcrypt.hash(parsed.data.newPassword, SALT_ROUNDS);
+    await prisma.users.update({
+      where: { id: user.id },
+      data: { password: hashed },
+    });
+
+    res
+      .status(200)
+      .json({ success: true, message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Forgot password reset error:', error);
+    res
+      .status(500)
+      .json({ success: false, message: 'Failed to reset password' });
+  }
+};
