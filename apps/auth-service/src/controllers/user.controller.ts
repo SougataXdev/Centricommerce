@@ -169,3 +169,8 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
 };
 
 // TODO: implement forgot-password flow in a dedicated controller if needed
+
+
+export const forgetPassword = async(req:Request , res:Response)=>{
+  
+}

@@ -8,8 +8,6 @@ import express from 'express';
 import proxy from 'express-http-proxy';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import morgan from 'morgan';
-import swaggerUi from 'swagger-ui-express';
-import axios from 'axios';
 import cookieParser from 'cookie-parser';
 import { Request, Response } from 'express';
 
