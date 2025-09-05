@@ -129,7 +129,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     }
 
     const accessToken = jwt.sign(
-      { id: user.id },
+      { id: user.id , role:"user" },
       process.env.ACCESS_TOKEN_SECRET!,
       {
         expiresIn: '15m',
@@ -137,7 +137,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     );
 
     const refreshToken = jwt.sign(
-      { email: user.email, id: user.id },
+      { email: user.email, id: user.id , role:"user" },
       process.env.REFRESH_TOKEN_SECRET!,
       { expiresIn: '7d' }
     );
@@ -146,14 +146,14 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       sameSite: 'strict',
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 15 * 60 * 1000, // 15 minutes
+      maxAge: 15 * 60 * 1000, 
     });
 
     res.cookie('refreshToken', refreshToken, {
       sameSite: 'strict',
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000, 
     });
 
     res.status(200).json({
@@ -167,3 +167,5 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
+
+// TODO: implement forgot-password flow in a dedicated controller if needed

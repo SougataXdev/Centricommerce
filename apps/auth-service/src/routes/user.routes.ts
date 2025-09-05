@@ -1,5 +1,6 @@
 import express from 'express';
-import { validateSignupData, verifyOtp } from '../helpers/auth.helper';
+import { verifyOtp } from '../helpers/auth.helper';
+import { validateSignupData } from '../middlewares/validateSignupData';
 import { createUser, loginUser, sendSignupOtp } from '../controllers/user.controller';
 import {
   otpEligibilityGuard,
