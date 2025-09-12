@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Eye, EyeOff } from 'lucide-react';
+import Link from 'next/link';
 
 type FormData = {
   email: string;
@@ -67,12 +68,9 @@ const Page = () => {
                 <label htmlFor="password" className="text-sm font-medium">
                   Password
                 </label>
-                <a
-                  href="#"
-                  className="text-sm underline-offset-2 hover:underline"
-                >
+                <Link href={"/forgot-password"} className="text-sm underline-offset-2 hover:underline">
                   Forgot your password?
-                </a>
+                </Link>
               </div>
               <div className="relative">
                 <input
@@ -146,9 +144,9 @@ const Page = () => {
 
             <div className="text-sm text-center">
               Don&apos;t have an account?{' '}
-              <a href="/signup" className="underline underline-offset-4">
+              <Link href={"/signup"} className="underline underline-offset-4">
                 Sign up
-              </a>
+              </Link>
             </div>
           </form>
         </div>
