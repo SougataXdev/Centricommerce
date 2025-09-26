@@ -1,7 +1,13 @@
 import express from 'express';
 import { verifyOtp } from '../helpers/auth.helper';
 import { validateSignupData } from '../middlewares/validateSignupData';
-import { createUser, loginUser, sendSignupOtp, forgotPasswordRequest, forgetPassword } from '../controllers/user.controller';
+import {
+  createUser,
+  loginUser,
+  sendSignupOtp,
+  forgotPasswordRequest,
+  forgetPassword,
+} from '../controllers/user.controller';
 import {
   otpEligibilityGuard,
   otpRequestRecord,
@@ -19,10 +25,9 @@ router.post(
   sendSignupOtp
 );
 
-
 router.post('/signup/verify', normalizeEmail, verifyOtp, createUser);
 
-router.post("/login" , loginUser);
+router.post('/login', loginUser);
 
 router.post(
   '/forgot-password/request',
@@ -35,8 +40,8 @@ router.post(
 router.post(
   '/forgot-password/reset',
   normalizeEmail,
-  verifyOtp, 
-  forgetPassword 
+  verifyOtp,
+  forgetPassword
 );
 
 export default router;

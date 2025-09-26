@@ -13,6 +13,7 @@ export const sendSignupOtp = async (
 ): Promise<void> => {
   try {
     const validated = req.validatedData;
+    console.log("validated data in signup :" , validated)
     if (!validated) {
       res.status(400).json({ message: 'Invalid request', success: false });
       return;

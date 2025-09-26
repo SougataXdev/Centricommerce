@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 
 type FormData = {
   name: string;
@@ -11,6 +12,7 @@ type FormData = {
   password: string;
   confirmPassword: string;
   pin?: string;
+  userType: 'user' | 'seller';
 };
 
 const SignupPage = () => {
@@ -18,7 +20,7 @@ const SignupPage = () => {
   const [canSend, setCanSend] = useState(true);
   const [timer, setTimer] = useState(60);
   const [userData, setUserData] = useState<FormData | null>(null);
-  const [showOtp, setShowOtp] = useState(true);
+  const [showOtp, setShowOtp] = useState(false);
 
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const router = useRouter();
@@ -48,15 +50,28 @@ const SignupPage = () => {
     setTimer(60);
   };
 
-  const onSubmit = (data: FormData) => {
-    console.log(data);
-    if (!showOtp) {
-      setUserData(data);
-      setShowOtp(true);
-    } else {
-      console.log('Verifying OTP:', data.pin);
-    }
-  };
+const onSubmit = async (data: FormData) => {
+  console.log(data);
+
+  if (!showOtp) {
+    const fullData = { ...data, usertype: "user" }; // 👈 add hardcoded usertype
+    setUserData(fullData);
+
+    await axios.post(
+      "http://localhost:8080/api/signup",
+      fullData,
+      { withCredentials: true }
+    );
+
+    setShowOtp(true);
+  } else {
+    console.log("Verifying OTP:", data.pin);
+  }
+};
+
+
+
+
 
   return (
     <div className="flex justify-center lg:pt-20">
