@@ -1,7 +1,8 @@
 'use client';
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
-import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 type ForgotPasswordForm = {
@@ -17,11 +18,13 @@ const ForgotPasswordPage = () => {
   const [resend, setResend] = useState(true);
   // using httpOnly cookie for reset token now
   const [timer, setTimer] = useState(60);
+    const router = useRouter();
 
   const {
     register,
     handleSubmit,
     watch,
+    reset,
     formState: { errors },
   } = useForm<ForgotPasswordForm>();
 
@@ -38,6 +41,11 @@ const ForgotPasswordPage = () => {
     }, 1000);
   };
 
+  useEffect(() => {
+  reset();
+}, [step, reset]);
+
+  
   const otpReqMutation = useMutation({
     mutationFn: async (email: string) => {
       const res = await axios.post(
@@ -91,6 +99,7 @@ const ForgotPasswordPage = () => {
     },
     onSuccess: () => {
       setStep('email');
+      router.push('/login');
       alert('Password reset successful! Please log in with your new password.');
     },
     onError: (error: any) => {

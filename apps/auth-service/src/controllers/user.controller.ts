@@ -1,9 +1,14 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import prisma from '../../../../libs/prisma';
 import { sendOtp as sendOtpEmail } from '../helpers/auth.helper';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { z as zod } from 'zod';
+import { success, z as zod } from 'zod';
+import {
+  AuthenticationError,
+  ValidationError,
+} from '../../../../libs/middlewares';
+import { strict } from 'assert';
 
 const SALT_ROUNDS = 12;
 
@@ -258,4 +263,54 @@ export const forgetPassword = async (
       .status(500)
       .json({ success: false, message: 'Failed to reset password' });
   }
+};
+
+export const renewAccessToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const rerfreshtoken = req.cookies.refreshToken;
+
+    if (!rerfreshtoken) {
+      throw new ValidationError('RefreshToken Missing');
+    }
+
+    const decoded = jwt.verify(
+      rerfreshtoken,
+      process.env.REFRESH_TOKEN_SECRET as string
+    ) as { id: string; role: string };
+
+    if (!decoded || decoded.id || decoded.role) {
+      throw new ValidationError('decoded has no id or role');
+    }
+
+    let user;
+
+    if (decoded.role === 'user') {
+      user = await prisma.users.findUnique({
+        where: { id: decoded.id },
+      });
+    }
+
+    if (!user) {
+      return new AuthenticationError('User nott found');
+    }
+
+    const accessToken = jwt.sign(
+      { id: decoded.id, role: decoded.role },
+      process.env.ACCESS_TOKEN_SECRET as string,
+      { expiresIn: '15m' }
+    );
+    res.cookie('accessToken', accessToken, {
+      sameSite: true,
+      secure: true,
+      httpOnly: true,
+    });
+
+    return res
+      .status(200)
+      .json({ success: true, message: 'accesstoken renewed successfully' });
+  } catch (error) {}
 };

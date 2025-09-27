@@ -171,7 +171,7 @@ const SignupPage = () => {
                     Forgot your password?
                   </Link>
                 </div>
-                <div className="relative">
+                <div className="">
                   <input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
@@ -183,7 +183,7 @@ const SignupPage = () => {
                         message: 'Password must be at least 6 characters',
                       },
                     })}
-                    className="w-full px-4 py-2 text-sm bg-gray-200 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500"
+                    className="z-0 w-full px-4 text-sm bg-gray-200 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <button
                     type="button"

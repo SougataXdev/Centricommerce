@@ -11,6 +11,7 @@ import {
   sendSignupOtp,
   forgotPasswordRequest,
   forgetPassword,
+  renewAccessToken,
 } from '../controllers/user.controller';
 import {
   otpEligibilityGuard,
@@ -32,6 +33,8 @@ router.post(
 router.post('/signup/verify', normalizeEmail, verifyOtp, createUser);
 
 router.post('/login', loginUser);
+
+router.post("/renew-access-token-users" , renewAccessToken);
 
 router.post(
   '/forgot-password/request',
