@@ -1,4 +1,6 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Navbar from './components/Navbar';
+import { QueryClientProviderCmp } from '../providers/QueryclientProviderCmp';
 import './global.css';
 
 export const metadata = {
@@ -13,8 +15,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <Navbar/>
-      <body>{children}</body>
+      <body>
+        <QueryClientProviderCmp>
+          <Navbar />
+          {children}
+        </QueryClientProviderCmp>
+      </body>
     </html>
   );
 }

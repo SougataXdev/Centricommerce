@@ -11,7 +11,7 @@ type FormData = {
   email: string;
   password: string;
   confirmPassword: string;
-  pin?: string;
+  otp?: string;
   userType: 'user' | 'seller';
 };
 
@@ -50,28 +50,50 @@ const SignupPage = () => {
     setTimer(60);
   };
 
-const onSubmit = async (data: FormData) => {
-  console.log(data);
+  const onSubmit = async (data: FormData) => {
+    console.log(data);
 
-  if (!showOtp) {
-    const fullData = { ...data, usertype: "user" }; // 👈 add hardcoded usertype
-    setUserData(fullData);
+    if (!showOtp) {
+      const fullData = { ...data, usertype: 'user' };
+      setUserData(fullData);
 
-    await axios.post(
-      "http://localhost:8080/api/signup",
-      fullData,
-      { withCredentials: true }
-    );
+      await axios.post('http://localhost:8080/api/signup', fullData, {
+        withCredentials: true,
+      });
 
-    setShowOtp(true);
-  } else {
-    console.log("Verifying OTP:", data.pin);
-  }
-};
+      setShowOtp(true);
+    } else {
+      if (data.otp?.length !== 6) {
+        alert('Please enter a validDjsougata@567 6-digit OTP');
+        return;
+      }
 
+      console.log('Verifying OTP with data:', userData);
+      console.log('data', data);
 
+      try {
+        const res = await axios.post(
+          'http://localhost:8080/api/signup/verify',
+          data,
+          {
+            withCredentials: true,
+          }
+        );
 
+        console.log('OTP verification response:', res.data);
 
+        alert('Signup and OTP verification successful!');
+
+        if (res.status === 200) {
+          setShowOtp(false);
+          router.push('/login');
+        }
+      } catch (error) {
+        console.error('OTP verification failed:', error);
+        alert('OTP verification failed. Please try again.');
+      }
+    }
+  };
 
   return (
     <div className="flex justify-center lg:pt-20">
@@ -249,20 +271,20 @@ const onSubmit = async (data: FormData) => {
 
                   {/* OTP Input */}
                   <div className="flex flex-col gap-2">
-                    <label htmlFor="pin" className="text-sm font-medium">
+                    <label htmlFor="otp" className="text-sm font-medium">
                       One-Time Password
                     </label>
                     <input
-                      id="pin"
+                      id="otp"
                       type="text"
                       maxLength={6}
                       placeholder="Enter 6-digit code"
-                      {...register('pin')}
+                      {...register('otp')}
                       className="px-4 py-2 text-sm tracking-widest text-center bg-gray-200 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500"
                     />
-                    {errors.pin && (
+                    {errors.otp && (
                       <span className="text-xs text-red-500">
-                        {errors.pin.message}
+                        {errors.otp.message}
                       </span>
                     )}
                   </div>
@@ -278,9 +300,7 @@ const onSubmit = async (data: FormData) => {
                         Resend OTP
                       </button>
                     ) : (
-                      <span className="text-gray-500">
-                        Resend in {timer}s
-                      </span>
+                      <span className="text-gray-500">Resend in {timer}s</span>
                     )}
                   </div>
 

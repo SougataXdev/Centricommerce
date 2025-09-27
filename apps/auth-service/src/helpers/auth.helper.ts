@@ -38,8 +38,10 @@ export const verifyOtp = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
+
   try {
     const { email, otp } = req.body;
+   
 
     if (!email || !otp) {
       return next(new ValidationError('Email and OTP are required'));

@@ -544,7 +544,7 @@ export default function Navbar() {
                   </div>
                 </div>
                 <a
-                  href="#"
+                  href="/login"
                   className="flex flex-col items-center text-gray-700 hover:text-gray-900"
                 >
                   <UserIcon aria-hidden="true" className="size-6" />

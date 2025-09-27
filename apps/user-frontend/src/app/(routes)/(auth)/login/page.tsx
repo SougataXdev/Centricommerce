@@ -4,6 +4,9 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
+import { useMutation } from '@tanstack/react-query';
+import axios, { AxiosError } from 'axios';
+import { error } from 'console';
 
 type FormData = {
   email: string;
@@ -21,8 +24,24 @@ const Page = () => {
   } = useForm<FormData>();
 
   const onSubmit = (data: FormData) => {
-    console.log(data);
+    loginmutation.mutate(data);
   };
+
+  const loginmutation = useMutation({
+    mutationFn: async (data: FormData) => {
+      const res = await axios.post('http://localhost:8080/api/login', data, {
+        withCredentials: true,
+      });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      router.push('/');
+    },
+    onError:(error:AxiosError)=>{
+      const errorMessage = (error.response?.data as {message?:string})?.message || 'Login failed';
+      console.error('Login error:', errorMessage);
+    }
+  });
 
   return (
     <div className="flex justify-center overflow-y-hidden lg:pt-20">
@@ -68,7 +87,10 @@ const Page = () => {
                 <label htmlFor="password" className="text-sm font-medium">
                   Password
                 </label>
-                <Link href={"/forgot-password"} className="text-sm underline-offset-2 hover:underline">
+                <Link
+                  href={'/forgot-password'}
+                  className="text-sm underline-offset-2 hover:underline"
+                >
                   Forgot your password?
                 </Link>
               </div>
@@ -101,7 +123,7 @@ const Page = () => {
               type="submit"
               className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              Login
+              {loginmutation.isPending ? 'Logging in...' : 'Login'}
             </button>
 
             <div className="relative text-sm text-center">
@@ -144,7 +166,7 @@ const Page = () => {
 
             <div className="text-sm text-center">
               Don&apos;t have an account?{' '}
-              <Link href={"/signup"} className="underline underline-offset-4">
+              <Link href={'/signup'} className="underline underline-offset-4">
                 Sign up
               </Link>
             </div>
