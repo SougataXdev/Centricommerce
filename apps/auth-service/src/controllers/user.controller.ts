@@ -13,7 +13,7 @@ export const sendSignupOtp = async (
 ): Promise<void> => {
   try {
     const validated = req.validatedData;
-    console.log("validated data in signup :" , validated)
+    console.log('validated data in signup :', validated);
     if (!validated) {
       res.status(400).json({ message: 'Invalid request', success: false });
       return;
@@ -175,7 +175,6 @@ export const forgotPasswordRequest = async (
   res: Response
 ): Promise<void> => {
   try {
-
     const { email } = req.body;
 
     if (!email) {
@@ -196,12 +195,10 @@ export const forgotPasswordRequest = async (
       );
     }
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: 'If the account exists, an OTP has been sent.',
-      });
+    res.status(200).json({
+      success: true,
+      message: 'If the account exists, an OTP has been sent.',
+    });
   } catch (error) {
     console.error('Forgot password request error:', error);
     res
@@ -215,24 +212,29 @@ export const forgetPassword = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { email, newPassword } = req.body || {};
+    const { newPassword } = req.body || {};
+    const emailFromToken = req.resetEmail;
 
     const schema = zod.object({
-      email: zod.string().email(),
       newPassword: zod
         .string()
         .min(6, 'Password must be at least 6 characters long')
         .max(100, 'Password must be at most 100 characters long'),
     });
 
-    const parsed = schema.safeParse({ email, newPassword });
+    const parsed = schema.safeParse({ newPassword });
     if (!parsed.success) {
       res.status(400).json({ success: false, message: parsed.error.message });
       return;
     }
 
+    if (!emailFromToken) {
+      res.status(400).json({ success: false, message: 'Invalid reset flow' });
+      return;
+    }
+
     const user = await prisma.users.findUnique({
-      where: { email: parsed.data.email },
+      where: { email: emailFromToken },
       select: { id: true },
     });
     if (!user) {
@@ -246,6 +248,7 @@ export const forgetPassword = async (
       data: { password: hashed },
     });
 
+    res.clearCookie('pwd_reset');
     res
       .status(200)
       .json({ success: true, message: 'Password updated successfully' });

@@ -30,12 +30,11 @@ export const validateSignupData = (userType: 'seller' | 'user') => {
         }
       );
 
-      console.log("safeparsing :" , req.body)
+    console.log('safeparsing :', req.body);
     const result = schema.safeParse(req.body);
 
-
     if (!result.success) {
-      console.log("user data verifier middleware triggered")
+      console.log('user data verifier middleware triggered');
       throw new ValidationError(result.error.message, result.error.issues);
     }
     req.validatedData = result.data;

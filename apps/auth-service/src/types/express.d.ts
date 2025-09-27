@@ -11,6 +11,7 @@ declare global {
         phoneNumber?: string;
         country?: string;
       };
+      resetEmail?: string;
     }
   }
 }

@@ -1,5 +1,9 @@
 import express from 'express';
-import { forgetPassVerifyOtp, verifyOtp } from '../helpers/auth.helper';
+import {
+  forgetPassVerifyOtp,
+  verifyOtp,
+  verifyResetToken,
+} from '../helpers/auth.helper';
 import { validateSignupData } from '../middlewares/validateSignupData';
 import {
   createUser,
@@ -37,12 +41,12 @@ router.post(
   forgotPasswordRequest
 );
 
-router.post("forgot-password/verify" , normalizeEmail , forgetPassVerifyOtp);
+router.post('/forgot-password/verify', normalizeEmail, forgetPassVerifyOtp);
 
 router.post(
   '/forgot-password/reset',
   normalizeEmail,
-  verifyOtp,
+  verifyResetToken,
   forgetPassword
 );
 

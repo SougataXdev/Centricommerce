@@ -15,6 +15,7 @@ const ForgotPasswordPage = () => {
   const [step, setStep] = useState<'email' | 'otp' | 'reset'>('email');
   const [email, setEmail] = useState('');
   const [resend, setResend] = useState(true);
+  // using httpOnly cookie for reset token now
   const [timer, setTimer] = useState(60);
 
   const {
@@ -39,8 +40,11 @@ const ForgotPasswordPage = () => {
 
   const otpReqMutation = useMutation({
     mutationFn: async (email: string) => {
-      const res = await axios.post('http://localhost:8080/api/forgot-password/request', { email });
-      console.log("otp request response: ", res.data)
+      const res = await axios.post(
+        'http://localhost:8080/api/forgot-password/request',
+        { email }
+      );
+      console.log('otp request response: ', res.data);
       return res.data;
     },
     onSuccess: (_, email) => {
@@ -55,11 +59,12 @@ const ForgotPasswordPage = () => {
 
   const verifyMutation = useMutation({
     mutationFn: async ({ email, otp }: { email: string; otp: string }) => {
-      const res = await axios.post('/api/forgot-password/verify', {
-        email,
-        otp,
-      });
-      return res.data;
+      const res = await axios.post(
+        'http://localhost:8080/api/forgot-password/verify',
+        { email, otp },
+        { withCredentials: true }
+      );
+      return res.data as { success: boolean };
     },
     onSuccess: () => {
       setStep('reset');
@@ -77,10 +82,11 @@ const ForgotPasswordPage = () => {
       email: string;
       newPassword: string;
     }) => {
-      const res = await axios.post('/api/forgot-password/reset', {
-        email,
-        newPassword,
-      });
+      const res = await axios.post(
+        'http://localhost:8080/api/forgot-password/reset',
+        { email, newPassword },
+        { withCredentials: true }
+      );
       return res.data;
     },
     onSuccess: () => {
@@ -180,6 +186,22 @@ const ForgotPasswordPage = () => {
                 >
                   Verify OTP
                 </button>
+
+                <div className="flex items-center justify-between mt-2 text-sm">
+                  {!resend ? (
+                    <span className="text-gray-500">
+                      Resend available in {timer}s
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => otpReqMutation.mutate(email)}
+                      className="text-blue-600 hover:underline"
+                    >
+                      Resend OTP
+                    </button>
+                  )}
+                </div>
               </>
             )}
 
