@@ -82,8 +82,6 @@ const SignupPage = () => {
 
         console.log('OTP verification response:', res.data);
 
-        alert('Signup and OTP verification successful!');
-
         if (res.status === 200) {
           setShowOtp(false);
           router.push('/login');

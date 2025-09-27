@@ -75,3 +75,49 @@ export const verifyOtp = async (
 };
 
 
+
+
+
+
+export const forgetPassVerifyOtp = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+
+  try {
+    const { email, otp } = req.body;
+   
+
+    if (!email || !otp) {
+      return next(new ValidationError('Email and OTP are required'));
+    }
+
+    const dbOtp = await redis.get(`otp:${email}`);
+
+    if (!dbOtp) {
+      return next(new ValidationError('Invalid or expired OTP'));
+    }
+
+    const failedAttemptsKey = `otp_attempts:${email}`;
+    const failedAttempts = parseInt((await redis.get(failedAttemptsKey)) || '0');
+
+    if (dbOtp !== otp) {
+      if (failedAttempts >= 2) {
+        await redis.set(`otp_lock:${email}`, 'locked', 'EX', 1800);
+        await redis.del(`otp:${email}`, failedAttemptsKey);
+        return next(new ValidationError('Too many failed attempts'));
+      }
+      await redis.set(failedAttemptsKey, failedAttempts + 1, 'EX', 300);
+      return next(new ValidationError('Invalid OTP'));
+    }
+
+    await redis.del(`otp:${email}`, failedAttemptsKey);
+    res.status(200).json({messgae:"otp verification successfull"})
+  } catch (error) {
+    console.error('OTP verification error:', error);
+    return next(new ValidationError('OTP verification failed'));
+  }
+};
+
+
