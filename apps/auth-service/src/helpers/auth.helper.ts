@@ -5,8 +5,6 @@ import crypto from 'crypto';
 import redis from '../../../../libs/redis';
 import { sendEmail } from './mail';
 
-// validateSignupData moved to middleware/validate-signup.ts
-
 export const sendOtp = async (
   email: string,
   name: String,

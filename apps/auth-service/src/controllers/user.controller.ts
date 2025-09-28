@@ -3,12 +3,11 @@ import prisma from '../../../../libs/prisma';
 import { sendOtp as sendOtpEmail } from '../helpers/auth.helper';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { success, z as zod } from 'zod';
+import {  z as zod } from 'zod';
 import {
   AuthenticationError,
   ValidationError,
 } from '../../../../libs/middlewares';
-import { strict } from 'assert';
 
 const SALT_ROUNDS = 12;
 
@@ -265,7 +264,7 @@ export const forgetPassword = async (
   }
 };
 
-export const renewAccessToken = async (
+export const renewAccessToken = async(
   req: Request,
   res: Response,
   next: NextFunction
