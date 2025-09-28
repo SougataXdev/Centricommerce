@@ -12,6 +12,13 @@ declare global {
         country?: string;
       };
       resetEmail?: string;
+      user?: {
+        id: string;
+        role?: 'user' | 'admin' | 'seller' | string;
+        email?: string;
+        // Allow additional Prisma user fields without importing types here
+        [key: string]: any;
+      };
     }
   }
 }

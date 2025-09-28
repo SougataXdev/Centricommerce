@@ -12,12 +12,14 @@ import {
   forgotPasswordRequest,
   forgetPassword,
   renewAccessToken,
+  getUserInfo,
 } from '../controllers/user.controller';
 import {
   otpEligibilityGuard,
   otpRequestRecord,
 } from '../middlewares/otp-service/guards';
 import { normalizeEmail } from '../middlewares/normalize-email';
+import { isAuthenticated } from '../middlewares/isAuthenticated';
 
 const router = express.Router();
 
@@ -35,6 +37,8 @@ router.post('/signup/verify', normalizeEmail, verifyOtp, createUser);
 router.post('/login', loginUser);
 
 router.post("/renew-access-token-users" , renewAccessToken);
+
+router.get('/me', isAuthenticated, getUserInfo);
 
 router.post(
   '/forgot-password/request',

@@ -8,7 +8,7 @@ interface JwtPayload {
 }
 
 export const isAuthenticated = async (
-  req: Request & { user?: JwtPayload },
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -33,16 +33,22 @@ export const isAuthenticated = async (
         .json({ success: false, message: 'Invalid token payload' });
     }
 
-    const user = await prisma.users.findUnique({ where: { id: decoded.id } });
-
+    const user = await prisma.users.findUnique({
+      where: { id: decoded.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        usertype: true,
+      },
+    });
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'User does not exists',
-      });
+      return res
+        .status(401)
+        .json({ success: false, message: 'User does not exist' });
     }
 
-    req.user = { id: user.id, role: user.usertype };
+    req.user = user as any;
 
     next();
   } catch (error) {
