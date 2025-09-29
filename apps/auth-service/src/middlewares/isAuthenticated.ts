@@ -15,6 +15,9 @@ export const isAuthenticated = async (
   try {
     const token =
       req.cookies?.accessToken || req.headers.authorization?.split(' ')[1];
+      console.log("token is auth middleware " , token
+
+      )
 
     if (!token) {
       return res
@@ -50,7 +53,7 @@ export const isAuthenticated = async (
 
     req.user = user as any;
 
-    next();
+    return next();
   } catch (error) {
     console.error('Auth error:', error);
     return res

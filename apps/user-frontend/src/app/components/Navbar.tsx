@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useState } from 'react';
+import { Fragment, use, useEffect, useState } from 'react';
 import {
   Dialog,
   DialogBackdrop,
@@ -24,6 +24,7 @@ import {
   UserIcon,
 } from '@heroicons/react/24/outline';
 import Image from 'next/image';
+import useUser from '../hooks/useUser';
 
 const navigation = {
   categories: [
@@ -159,6 +160,14 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const menCategory = navigation.categories.find((c) => c.id === 'men');
   const womenCategory = navigation.categories.find((c) => c.id === 'women');
+
+  const { data, isLoading } = useUser();
+
+  if (isLoading) {
+    console.log('Loading user data...');
+  } else {
+    console.log('User data in Navbar:', data);
+  }
 
   return (
     <div className="sticky top-0 bg-white">

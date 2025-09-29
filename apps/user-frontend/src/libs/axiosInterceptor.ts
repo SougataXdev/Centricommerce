@@ -2,16 +2,13 @@ import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 
 const axiosInstance = axios.create({
   baseURL: 'http://localhost:8080/api',
-  withCredentials: true,
+  withCredentials: true, // always send cookies
 });
 
 const REFRESH_URL = '/renew-access-token-users';
 
 let isRefreshing = false;
-type Subscriber = {
-  resolve: () => void;
-  reject: (err: unknown) => void;
-};
+type Subscriber = { resolve: () => void; reject: (err: unknown) => void };
 let refreshSubscribers: Subscriber[] = [];
 
 const subscribeTokenRefresh = (subscriber: Subscriber) => {
@@ -28,20 +25,21 @@ const onRefreshFailure = (err: unknown) => {
   refreshSubscribers = [];
 };
 
+const AUTH_ROUTES = ['/login', '/register'];
 const handleLogout = () => {
-  // Client-side cleanup and redirect. httpOnly cookies must be cleared server-side.
-  window.location.href = '/login';
+  // Avoid redirect loops if we're already on an auth route
+  if (!AUTH_ROUTES.includes(window.location.pathname)) {
+    window.location.href = '/login';
+  }
 };
 
-// Request: cookie-first, nothing to attach. Keep for future per-request tweaks (e.g., request IDs).
+// ✅ Request interceptor (reserved for future request customizations)
 axiosInstance.interceptors.request.use(
-  (config) => {
-    return config;
-  },
+  (config) => config,
   (error) => Promise.reject(error)
 );
 
-// Response: on 401, attempt refresh once, queue concurrent requests, guard against loops, and reject queued on failure
+// ✅ Response interceptor for token refresh
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (
@@ -49,12 +47,10 @@ axiosInstance.interceptors.response.use(
   ) => {
     const originalRequest = error.config;
 
-    // If no response or no config, just bubble up
     if (!error.response || !originalRequest) {
       return Promise.reject(error);
     }
 
-    // Do not try to refresh for the refresh endpoint itself
     const isRefreshCall = (originalRequest.url || '').includes(REFRESH_URL);
 
     if (
@@ -63,7 +59,7 @@ axiosInstance.interceptors.response.use(
       !isRefreshCall
     ) {
       if (isRefreshing) {
-        // Queue and wait for ongoing refresh
+        // Queue this request until refresh finishes
         return new Promise((resolve, reject) => {
           subscribeTokenRefresh({
             resolve: () => resolve(axiosInstance(originalRequest)),
@@ -76,9 +72,9 @@ axiosInstance.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // Use global axios to avoid this interceptor and prevent recursion
+        // Use global axios (not axiosInstance) to avoid recursion
         await axios.post(
-          `http://localhost:8080/api${REFRESH_URL}`,
+          `${axiosInstance.defaults.baseURL}${REFRESH_URL}`,
           {},
           { withCredentials: true }
         );
@@ -86,8 +82,7 @@ axiosInstance.interceptors.response.use(
         isRefreshing = false;
         onRefreshSuccess();
 
-        // Retry original request (cookies now carry the refreshed access token)
-        return axiosInstance(originalRequest);
+        return axiosInstance(originalRequest); // retry original request
       } catch (err) {
         isRefreshing = false;
         onRefreshFailure(err);
@@ -101,6 +96,3 @@ axiosInstance.interceptors.response.use(
 );
 
 export default axiosInstance;
-
-
-//AI WRITES GOOD COMMENTS THAN ME 😆
