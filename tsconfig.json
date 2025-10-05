@@ -17,6 +17,9 @@
     },
     {
       "path": "./apps/user-frontend"
+    },
+    {
+      "path": "./apps/seller-frontend"
     }
   ]
 }
