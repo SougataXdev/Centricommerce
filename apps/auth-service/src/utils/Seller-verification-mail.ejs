@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verify Your Seller Account - CentriCommerce</title>
+    <style>
+      body {
+        font-family: 'Segoe UI', sans-serif;
+        background: #f4f4f7;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 600px;
+        margin: 40px auto;
+        background: #fff;
+        border-radius: 18px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+      }
+      .header {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        padding: 40px 20px;
+        text-align: center;
+        color: #fff;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 700;
+      }
+      .content {
+        padding: 40px 30px;
+        text-align: center;
+      }
+      .content h2 {
+        font-size: 22px;
+        color: #333;
+        margin-bottom: 15px;
+      }
+      .content p {
+        font-size: 16px;
+        color: #555;
+        line-height: 1.6;
+        margin: 0 0 20px;
+      }
+      .otp-container {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        border-radius: 12px;
+        padding: 25px;
+        margin: 30px auto;
+        width: 80%;
+        box-shadow: 0 6px 18px rgba(240, 147, 251, 0.3);
+      }
+      .otp-label {
+        font-size: 14px;
+        color: #fff;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+      }
+      .otp-code {
+        font-size: 38px;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: 10px;
+        margin: 0;
+      }
+      .warning {
+        background: #fff3cd;
+        border: 1px solid #ffeeba;
+        color: #856404;
+        font-size: 14px;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 25px auto;
+        width: 85%;
+        text-align: left;
+      }
+      .divider {
+        border-top: 1px solid #e9ecef;
+        margin: 30px auto 20px;
+        width: 85%;
+      }
+      .footer {
+        background: #f8f9fa;
+        text-align: center;
+        padding: 20px;
+        border-top: 1px solid #e9ecef;
+      }
+      .footer .brand {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1e3c72;
+        margin-bottom: 8px;
+      }
+      .footer p {
+        color: #6c757d;
+        font-size: 13px;
+        margin: 5px 0;
+      }
+      .footer a {
+        color: #007bff;
+        text-decoration: none;
+      }
+      .footer a:hover {
+        text-decoration: underline;
+      }
+      @media (max-width: 600px) {
+        .container {
+          margin: 20px;
+        }
+        .otp-code {
+          font-size: 28px;
+          letter-spacing: 6px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Verify Your Seller Account</h1>
+      </div>
+
+      <div class="content">
+        <h2>Hi <strong><%= name %></strong>, Welcome to CentriCommerce as a Seller!</h2>
+        <p>
+          Thank you for joining us as a seller! Use the code below to verify your seller account and start selling on our platform.
+        </p>
+
+        <div class="otp-container">
+          <div class="otp-label">Your Verification Code</div>
+          <div class="otp-code"><%= otp %></div>
+        </div>
+
+        <div class="warning">
+          <strong>Security Notice:</strong> This code expires in
+          <strong>5 minutes</strong>. Keep it confidential for your safety.
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="footer">
+        <div class="brand">CentriCommerce</div>
+        <p>&copy; 2025 CentriCommerce. All rights reserved.</p>
+        <p>
+          Need help?
+          <a href="mailto:support@centricommerce.com">Contact Support</a>
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

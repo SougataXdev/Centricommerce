@@ -45,7 +45,6 @@ export const validateSignupData = (userType: 'seller' | 'user' | 'admin') => {
       throw new ValidationError(result.error.message, result.error.issues);
     }
 
-    req.validatedData = result.data;
     next();
   };
 };

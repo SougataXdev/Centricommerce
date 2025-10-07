@@ -13,73 +13,117 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// --------------------------------------------------------
+// IMAGES
+// Supports avatars (1:1) and galleries (1:N)
+// --------------------------------------------------------
 model Images {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
-  file_id   String
+  fileId    String
   url       String
   altText   String?
   createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
-  userId    String?   @unique @db.ObjectId
-  shopId    String    @unique @db.ObjectId
-  users     Users?    @relation(fields: [userId], references: [id])
-  shops     Shops     @relation(fields: [shopId], references: [id])
+
+  // Avatar relations (1:1)
+  userAvatarId String? @unique @db.ObjectId
+  shopAvatarId String? @unique @db.ObjectId
+
+  usersAvatar Users? @relation("UserAvatar", fields: [userAvatarId], references: [id])
+  shopsAvatar Shops? @relation("ShopAvatar", fields: [shopAvatarId], references: [id])
+
+  // Gallery relations (1:N)
+  userId String? @db.ObjectId
+  shopId String? @db.ObjectId
+
+  user Users? @relation("UserGallery", fields: [userId], references: [id])
+  shop Shops? @relation("ShopGallery", fields: [shopId], references: [id])
 }
 
+// --------------------------------------------------------
+// USERS
+// Avatar (1:1), gallery (1:N), reviews
+// --------------------------------------------------------
 model Users {
-  id        String        @id @default(auto()) @map("_id") @db.ObjectId
-  email     String        @unique
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  email     String    @unique
   name      String
   password  String?
-  usertype  String        @default("user")
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  avatar    Images?
+  usertype  String    @default("user")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+
+  // Avatar (1:1)
+  avatar    Images?       @relation("UserAvatar")
+  // Gallery (1:N)
+  images    Images[]      @relation("UserGallery")
   following String[]
-  reviews   ShopReviews[]
+  // Reviews (1:N)
+  reviews   ShopReviews[] @relation("UserReviews")
 }
 
+// --------------------------------------------------------
+// SELLERS
+// Owns one shop (1:1)
+// --------------------------------------------------------
 model Sellers {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  name         String
-  email        String   @unique
-  phone_number String
-  country      String
-  password     String
-  stripe_Id    String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  shopId       String?  @db.ObjectId
-  shops        Shops?   @relation
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  email       String    @unique
+  phoneNumber String
+  country     String
+  password    String
+  stripeId    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime? @updatedAt
+
+  // Optional reference back to shop
+  shop Shops? @relation("SellerShop")
 }
 
+// --------------------------------------------------------
+// SHOPS
+// Avatar (1:1), gallery (1:N), reviews (1:N), seller (1:1)
+// --------------------------------------------------------
+model Shops {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  bio         String?
+  category    String
+  coverImage  String?
+  website     String?
+  address     String
+  opening     String?
+  socialLinks Json?
+  ratings     Float     @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime? @updatedAt
+
+  // Avatar (1:1)
+  avatar Images?  @relation("ShopAvatar")
+  // Gallery (1:N)
+  images Images[] @relation("ShopGallery")
+
+  // Reviews (1:N)
+  reviews ShopReviews[] @relation("ShopReviews")
+
+  // Seller (1:1) → Required side (holds foreign key)
+  sellerId String  @unique @db.ObjectId
+  seller   Sellers @relation("SellerShop", fields: [sellerId], references: [id])
+}
+
+// --------------------------------------------------------
+// SHOP REVIEWS
+// --------------------------------------------------------
 model ShopReviews {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   userId    String   @db.ObjectId
-  user      Users    @relation(fields: [userId], references: [id])
+  shopId    String   @db.ObjectId
   rating    Float
   reviews   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  shopsId   String   @db.ObjectId
-  shops     Shops    @relation(fields: [shopsId], references: [id])
-}
 
-model Shops {
-  id          String        @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
-  bio         String?
-  category    String
-  avatar      Images?
-  coverImage  String
-  website     String
-  address     String
-  opening     String
-  socialLinks Json[]
-  ratings     Float         @default(0)
-  reviews     ShopReviews[]
-  sellerId    String        @unique @db.ObjectId
-  sellers     Sellers       @relation(fields: [sellerId], references: [id])
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  user Users @relation("UserReviews", fields: [userId], references: [id])
+  shop Shops @relation("ShopReviews", fields: [shopId], references: [id])
 }

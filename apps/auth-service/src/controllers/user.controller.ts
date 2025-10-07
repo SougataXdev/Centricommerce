@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import prisma from '../../../../libs/prisma';
-import { sendOtp as sendOtpEmail } from '../helpers/auth.helper';
+import { sendOtp } from '../helpers/auth.helper';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { z as zod } from 'zod';
@@ -41,7 +41,7 @@ export const sendSignupOtp = async (
       return;
     }
 
-    await sendOtpEmail(email, name, 'User-verification-mail');
+    await sendOtp(email, name, 'User-verification-mail');
 
     res.status(200).json({
       message: 'OTP sent successfully',
@@ -209,7 +209,7 @@ export const forgotPasswordRequest = async (
     });
 
     if (user) {
-      await sendOtpEmail(
+      await sendOtp(
         user.email,
         user.name || 'User',
         'User-forget-password-mail'
