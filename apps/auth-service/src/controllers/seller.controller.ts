@@ -38,37 +38,49 @@ export const sendSellerSignUpOtp = async (req: Request, res: Response) => {
 
 export const createSeller = async (req: Request, res: Response) => {
   try {
-    const { name, email, phone_number, country, password } = req.body;
+    const { name, email, phoneNumber, country, password } = req.body;
 
     const isExistingUser = await prisma.sellers.findUnique({
       where: { email },
     });
 
-    if(isExistingUser){
-        return res.status(409).json({
-            success:false,
-            message:"seller with email already exists"
-        })
+    if (isExistingUser) {
+      return res.status(409).json({
+        success: false,
+        message: "Seller with this email already exists",
+      });
     }
 
-    const hashedPassword = await bcrypt.hash(password , 20);
+    const hashedPassword = await bcrypt.hash(password, 20);
+
 
     const createdSeller = await prisma.sellers.create({
-        data:{
-            name,
-            email,
-            hashedPassword,
-            phone_number,
-            country
+      data: {
+        name,
+        email,
+        password: hashedPassword, 
+        phoneNumber,
+        country,
+      },
+      select: {
+        name: true,
+        email: true,
+        country: true,
+        phoneNumber: true,
+      },
+    });
 
-        } as any , 
-        select:{
-            name:true ,
-            email:true,
-            country:true ,
-            phone_number:true
-        }
-    })
+    return res.status(201).json({
+      success: true,
+      message: "Seller created successfully",
+      seller: createdSeller,
+    });
 
-  } catch (error) {}
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
 };
