@@ -57,13 +57,14 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://localhost:8
 
 export default function SellerSignupPage() {
   const router = useRouter();
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(3);
   const [showOtp, setShowOtp] = useState(false);
   const [canSend, setCanSend] = useState(true);
   const [timer, setTimer] = useState(60);
   const [showPassword, setShowPassword] = useState(false);
   const [accountPayload, setAccountPayload] = useState<SellerAccountPayload | null>(null);
   const [sellerId, setSellerId] = useState<string | null>(null);
+  const [isStripeConnecting, setIsStripeConnecting] = useState(false);
 
   const {
     register,
@@ -146,7 +147,7 @@ export default function SellerSignupPage() {
       return res.data as { success?: boolean };
     },
     onSuccess: () => {
-      router.push("/login");
+      setStep(3);
     },
     onError: (error: AxiosError<{ message?: string }>) => {
       const message = error.response?.data?.message ?? "Failed to create shop";
@@ -217,12 +218,27 @@ export default function SellerSignupPage() {
     }
   };
 
+  const handleConnectStripe = () => {
+    if (!sellerId || isStripeConnecting) {
+      return;
+    }
+
+    setIsStripeConnecting(true);
+
+    setTimeout(() => {
+      setIsStripeConnecting(false);
+      router.push("/login");
+    }, 800);
+  };
+
+
+
   const StepperHeader = () => {
-    const steps = ["Seller details", "Shop setup"];
+    const steps = ["Seller details", "Shop setup", "Stripe connect"];
     return (
       <div className="flex items-center gap-4 mb-6">
         {steps.map((label, index) => {
-          const idx = (index + 1) as 1 | 2;
+          const idx = (index + 1) as 1 | 2 | 3;
           const active = idx === step;
           const done = idx < step;
           return (
@@ -475,6 +491,29 @@ export default function SellerSignupPage() {
                   </button>
                 </div>
               </>
+            )}
+
+            {step === 3 && (
+              <div className="flex flex-col items-center gap-6 py-10">
+                <div className="flex flex-col items-center gap-2 text-center">
+                  <span className="text-2xl font-semibold text-gray-900">Connect your payouts</span>
+                  <p className="max-w-md text-sm text-gray-500">
+                    Link your new seller account with Stripe to receive payments securely. You&apos;ll be redirected to
+                    Stripe&apos;s onboarding flow to finish the setup.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleConnectStripe}
+                  className="flex items-center gap-3 px-6 py-3 text-sm font-medium text-white transition-transform bg-[#635BFF] rounded-lg shadow-sm hover:bg-[#4f46e5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#635BFF] disabled:opacity-70 disabled:pointer-events-none"
+                  disabled={!sellerId || isStripeConnecting}
+                >
+                  <span>{isStripeConnecting ? "Redirecting..." : "Connect Stripe"}</span>
+                </button>
+                <p className="text-xs text-gray-400">
+                  Stripe connects securely with your shop. You can revisit this step anytime from your dashboard.
+                </p>
+              </div>
             )}
           </form>
         </div>
