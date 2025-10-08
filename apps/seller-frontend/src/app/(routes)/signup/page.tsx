@@ -2,24 +2,44 @@
 
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
 
 type SignupForm = {
   name: string;
   email: string;
   password: string;
   confirmPassword: string;
-  phone: string;
+  phoneNumber: string;
   country: string;
   otp?: string;
-  displayName?: string;
-  userType?: "user" | "seller";
-  bankName?: string;
-  accountNumber?: string;
-  accountHolderName?: string;
-  ifsc?: string;
+  shopName?: string;
+  bio?: string;
+  address?: string;
+  opening?: string;
+  website?: string;
+  category?: string;
+};
+
+type SellerAccountPayload = {
+  name: string;
+  email: string;
+  password: string;
+  phoneNumber: string;
+  country: string;
+  usertype: "seller";
+};
+
+type CreateShopPayload = {
+  shopName: string;
+  bio?: string;
+  address: string;
+  opening?: string;
+  website?: string;
+  category: string;
+  sellerId: string;
 };
 
 const COUNTRY_OPTIONS = [
@@ -33,14 +53,17 @@ const COUNTRY_OPTIONS = [
   { code: "ES", label: "Spain" },
 ];
 
-export default function SignupStepper() {
+const API_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://localhost:8080/api";
+
+export default function SellerSignupPage() {
   const router = useRouter();
-  const [step, setStep] = useState<number>(1); // 1: create+otp, 2: setup, 3: add bank
+  const [step, setStep] = useState<1 | 2>(1);
   const [showOtp, setShowOtp] = useState(false);
   const [canSend, setCanSend] = useState(true);
-  const [timer, setTimer] = useState<number>(60);
+  const [timer, setTimer] = useState(60);
   const [showPassword, setShowPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [accountPayload, setAccountPayload] = useState<SellerAccountPayload | null>(null);
+  const [sellerId, setSellerId] = useState<string | null>(null);
 
   const {
     register,
@@ -48,178 +71,185 @@ export default function SignupStepper() {
     watch,
     setError,
     formState: { errors },
-    getValues,
   } = useForm<SignupForm>({
-    defaultValues: { country: "India", userType: "user" },
+    defaultValues: { country: COUNTRY_OPTIONS[0]?.label ?? "" },
   });
 
-  // Timer for resend OTP
   useEffect(() => {
     let id: number | undefined;
     if (!canSend && timer > 0) {
       id = window.setInterval(() => {
-        setTimer((t) => t - 1);
+        setTimer((prev) => prev - 1);
       }, 1000);
     } else if (timer === 0) {
       setCanSend(true);
       setTimer(60);
     }
     return () => {
-      if (id) clearInterval(id);
+      if (id) {
+        clearInterval(id);
+      }
     };
   }, [canSend, timer]);
 
-  const handleResendOtp = async () => {
-    try {
-      const { email } = getValues();
-      if (!email) return setError("email", { message: "Provide email to resend OTP" });
+  const sendOtpMutation = useMutation({
+    mutationFn: async (payload: SellerAccountPayload) => {
+      const res = await axios.post(`${API_BASE_URL}/seller/send-seller-otp`, payload, {
+        withCredentials: true,
+      });
+      return res.data as { message?: string };
+    },
+    onSuccess: () => {
+      setShowOtp(true);
       setCanSend(false);
       setTimer(60);
-      // call resend endpoint (adjust to your API)
-      await axios.post(
-        "/api/signup/resend-otp",
-        { email },
-        { withCredentials: true }
-      );
-    } catch (err) {
-      console.error(err);
-      setCanSend(true);
+    },
+    onError: (error: AxiosError<{ message?: string; issues?: Array<{ path?: string[]; message: string }> }>) => {
+      const issue = error.response?.data?.issues?.[0];
+      if (issue?.path?.length) {
+        setError(issue.path[0] as keyof SignupForm, { message: issue.message });
+        return;
+      }
+      const message = error.response?.data?.message;
+      if (message) {
+        setError("email", { message });
+      }
+    },
+  });
+
+  const verifySellerMutation = useMutation({
+    mutationFn: async (payload: SellerAccountPayload & { otp: string }) => {
+      const res = await axios.post(`${API_BASE_URL}/seller/verify-create-seller`, payload, {
+        withCredentials: true,
+      });
+      return res.data as { success?: boolean; seller?: { id?: string; _id?: string }; sellerId?: string };
+    },
+    onSuccess: (data) => {
+      const resolvedId = data?.seller?.id ?? data?.seller?._id ?? data?.sellerId ?? null;
+      if (resolvedId) {
+        setSellerId(resolvedId);
+      }
+      setShowOtp(false);
+      setStep(2);
+    },
+    onError: (error: AxiosError<{ message?: string }>) => {
+      const message = error.response?.data?.message ?? "OTP verification failed";
+      setError("otp", { message });
+    },
+  });
+
+  const createShopMutation = useMutation({
+    mutationFn: async (payload: CreateShopPayload) => {
+      const res = await axios.post(`${API_BASE_URL}/seller/createshop`, payload, {
+        withCredentials: true,
+      });
+      return res.data as { success?: boolean };
+    },
+    onSuccess: () => {
+      router.push("/login");
+    },
+    onError: (error: AxiosError<{ message?: string }>) => {
+      const message = error.response?.data?.message ?? "Failed to create shop";
+      setError("shopName", { message });
+    },
+  });
+
+  const handleResendOtp = () => {
+    if (!accountPayload || !canSend || sendOtpMutation.isPending) {
+      return;
     }
+    sendOtpMutation.mutate(accountPayload);
   };
 
-  const onSubmit = async (data: SignupForm) => {
-    // Step 1: Create account -> trigger OTP
+  const onSubmit = (data: SignupForm) => {
     if (step === 1 && !showOtp) {
-      // basic password match check
       if (data.password !== data.confirmPassword) {
         setError("confirmPassword", { message: "Passwords do not match" });
         return;
       }
 
-      setIsSubmitting(true);
-      try {
-        const payload = {
-          name: data.name,
-          email: data.email,
-          password: data.password,
-          phone: data.phone,
-          country: data.country,
-        };
+      const payload: SellerAccountPayload = {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        phoneNumber: data.phoneNumber,
+        country: data.country,
+        usertype: "seller",
+      };
 
-        // adjust endpoint to your backend
-        await axios.post("/api/signup", payload, { withCredentials: true });
-
-        // show OTP input after server accepted signup
-        setShowOtp(true);
-        setCanSend(false);
-        setTimer(60);
-      } catch (err: any) {
-        console.error("signup error", err?.response ?? err);
-        // show backend validation errors if available
-        if (err?.response?.data?.errors) {
-          Object.entries(err.response.data.errors).forEach(([k, v]) =>
-            setError(k as any, { message: String(v) })
-          );
-        }
-      } finally {
-        setIsSubmitting(false);
-      }
+      setAccountPayload(payload);
+      sendOtpMutation.mutate(payload);
       return;
     }
 
-    // Step 1 (OTP verification) -> move to step 2
     if (step === 1 && showOtp) {
-      if (!data.otp || data.otp.length !== 6) {
+      if (!data.otp || data.otp.trim().length !== 6) {
         setError("otp", { message: "Enter a valid 6-digit OTP" });
         return;
       }
 
-      setIsSubmitting(true);
-      try {
-        await axios.post(
-          "/api/signup/verify",
-          { email: data.email, otp: data.otp },
-          { withCredentials: true }
-        );
-
-        setShowOtp(false);
-        setStep(2);
-      } catch (err) {
-        console.error("OTP verification failed", err);
-        setError("otp", { message: "OTP verification failed" });
-      } finally {
-        setIsSubmitting(false);
+      if (!accountPayload) {
+        setError("email", { message: "Please restart the signup flow" });
+        return;
       }
 
+      verifySellerMutation.mutate({ ...accountPayload, otp: data.otp.trim() });
       return;
     }
 
-    // Step 2: Setup profile
     if (step === 2) {
-      setIsSubmitting(true);
-      try {
-        const payload = {
-          displayName: data.displayName,
-          userType: data.userType,
-        };
-        await axios.post("/api/profile/setup", payload, { withCredentials: true });
-        setStep(3);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsSubmitting(false);
+      if (!sellerId) {
+        setError("shopName", { message: "Missing seller id. Please retry verification." });
+        return;
       }
-      return;
-    }
 
-    // Step 3: Add bank
-    if (step === 3) {
-      setIsSubmitting(true);
-      try {
-        const payload = {
-          bankName: data.bankName,
-          accountNumber: data.accountNumber,
-          accountHolderName: data.accountHolderName,
-          ifsc: data.ifsc,
-        };
-        await axios.post("/api/bank/add", payload, { withCredentials: true });
+      const payload: CreateShopPayload = {
+        shopName: data.shopName ?? "",
+        bio: data.bio,
+        address: data.address ?? "",
+        opening: data.opening,
+        website: data.website,
+        category: data.category ?? "",
+        sellerId,
+      };
 
-        // finished signup flow
-        router.push("/dashboard");
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsSubmitting(false);
-      }
-      return;
+      createShopMutation.mutate(payload);
     }
   };
 
   const StepperHeader = () => {
-    const steps = ["Create account", "Setup profile", "Add bank"];
+    const steps = ["Seller details", "Shop setup"];
     return (
       <div className="flex items-center gap-4 mb-6">
-        {steps.map((label, i) => {
-          const idx = i + 1;
+        {steps.map((label, index) => {
+          const idx = (index + 1) as 1 | 2;
           const active = idx === step;
           const done = idx < step;
           return (
             <div key={label} className="flex items-center gap-3">
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold border-2 ${
-                  active ? "border-blue-600 bg-blue-600 text-white" : done ? "border-green-500 bg-green-500 text-white" : "border-gray-300 text-gray-600 bg-white"
+                  active
+                    ? "border-blue-600 bg-blue-600 text-white"
+                    : done
+                    ? "border-green-500 bg-green-500 text-white"
+                    : "border-gray-300 text-gray-600 bg-white"
                 }`}
               >
                 {idx}
               </div>
               <div className={`text-sm ${active ? "text-gray-900 font-medium" : "text-gray-500"}`}>{label}</div>
-              {i !== steps.length - 1 && <div className="w-8 h-0.5 bg-gray-200 mx-3" />}
+              {index !== steps.length - 1 && <div className="w-8 h-0.5 bg-gray-200 mx-3" />}
             </div>
           );
         })}
       </div>
     );
   };
+
+  const isSendingOtp = sendOtpMutation.isPending;
+  const isVerifyingOtp = verifySellerMutation.isPending;
+  const isCreatingShop = createShopMutation.isPending;
 
   return (
     <div className="flex justify-center lg:pt-20">
@@ -228,14 +258,13 @@ export default function SignupStepper() {
           <StepperHeader />
 
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
-            {/* STEP 1: Create account + OTP */}
             {step === 1 && (
               <>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-medium">Name</label>
                     <input
-                      {...register("name", { required: "Name is required", minLength: 3 })}
+                      {...register("name", { required: "Name is required", minLength: { value: 3, message: "Name must be at least 3 characters" } })}
                       className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
                       placeholder="Your full name"
                     />
@@ -243,21 +272,33 @@ export default function SignupStepper() {
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium">Phone</label>
+                    <label className="text-sm font-medium">Phone number</label>
                     <input
                       type="tel"
-                      {...register("phone", { required: "Phone is required", pattern: { value: /^\+?\d{7,15}$/, message: "Enter a valid phone number" } })}
+                      {...register("phoneNumber", {
+                        required: "Phone number is required",
+                        pattern: {
+                          value: /^\+?\d{7,15}$/,
+                          message: "Enter a valid phone number",
+                        },
+                      })}
                       className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
                       placeholder="e.g. +919876543210"
                     />
-                    {errors.phone && <span className="text-xs text-red-500">{errors.phone.message}</span>}
+                    {errors.phoneNumber && <span className="text-xs text-red-500">{errors.phoneNumber.message}</span>}
                   </div>
 
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-medium">Email</label>
                     <input
                       type="email"
-                      {...register("email", { required: "Email is required", pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/ })}
+                      {...register("email", {
+                        required: "Email is required",
+                        pattern: {
+                          value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                          message: "Enter a valid email",
+                        },
+                      })}
                       className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
                       placeholder="you@company.com"
                     />
@@ -266,13 +307,14 @@ export default function SignupStepper() {
 
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-medium">Country</label>
-                    <select {...register("country", { required: true })} className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md">
+                    <select {...register("country", { required: "Country is required" })} className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md">
                       {COUNTRY_OPTIONS.map((c) => (
                         <option key={c.code} value={c.label}>
                           {c.label}
                         </option>
                       ))}
                     </select>
+                    {errors.country && <span className="text-xs text-red-500">{errors.country.message}</span>}
                   </div>
                 </div>
 
@@ -281,7 +323,10 @@ export default function SignupStepper() {
                     <label className="text-sm font-medium">Password</label>
                     <input
                       type={showPassword ? "text" : "password"}
-                      {...register("password", { required: "Password is required", minLength: 6 })}
+                      {...register("password", {
+                        required: "Password is required",
+                        minLength: { value: 6, message: "Password must be at least 6 characters" },
+                      })}
                       className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
                       placeholder="Create a password"
                     />
@@ -297,7 +342,7 @@ export default function SignupStepper() {
                       type="password"
                       {...register("confirmPassword", {
                         required: "Confirm your password",
-                        validate: (v) => v === watch("password") || "Passwords do not match",
+                        validate: (value) => value === watch("password") || "Passwords do not match",
                       })}
                       className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
                       placeholder="Re-enter password"
@@ -306,7 +351,6 @@ export default function SignupStepper() {
                   </div>
                 </div>
 
-                {/* OTP block shown after signup request */}
                 {showOtp && (
                   <div className="mt-2">
                     <label className="text-sm font-medium">Enter OTP</label>
@@ -320,7 +364,12 @@ export default function SignupStepper() {
 
                       <div className="text-sm">
                         {canSend ? (
-                          <button type="button" onClick={handleResendOtp} className="text-blue-600 hover:underline">
+                          <button
+                            type="button"
+                            onClick={handleResendOtp}
+                            className="text-blue-600 hover:underline disabled:text-gray-400"
+                            disabled={isSendingOtp}
+                          >
                             Resend OTP
                           </button>
                         ) : (
@@ -336,100 +385,93 @@ export default function SignupStepper() {
                   <div />
                   <button
                     type="submit"
-                    className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
-                    disabled={isSubmitting}
+                    className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-70"
+                    disabled={isSendingOtp || isVerifyingOtp}
                   >
-                    {showOtp ? "Verify & Continue" : "Create account"}
+                    {!showOtp
+                      ? isSendingOtp
+                        ? "Sending OTP..."
+                        : "Send OTP"
+                      : isVerifyingOtp
+                      ? "Verifying..."
+                      : "Verify & Continue"}
                   </button>
                 </div>
               </>
             )}
 
-            {/* STEP 2: Setup profile */}
             {step === 2 && (
               <>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium">Display name</label>
-                  <input
-                    {...register("displayName", { required: "Display name is required" })}
-                    className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
-                    placeholder="How should we call you?"
-                  />
-                  {errors.displayName && <span className="text-xs text-red-500">{errors.displayName.message}</span>}
-                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="flex flex-col gap-2 md:col-span-2">
+                    <label className="text-sm font-medium">Shop name</label>
+                    <input
+                      {...register("shopName", { required: "Shop name is required" })}
+                      className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
+                      placeholder="Your shop name"
+                    />
+                    {errors.shopName && <span className="text-xs text-red-500">{errors.shopName.message}</span>}
+                  </div>
 
-                <div className="flex items-center gap-4">
-                  <label className="text-sm font-medium">Account type</label>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="radio" value="user" {...register("userType")} defaultChecked /> User
-                  </label>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="radio" value="seller" {...register("userType")} /> Seller
-                  </label>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium">Category</label>
+                    <input
+                      {...register("category", { required: "Category is required" })}
+                      className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
+                      placeholder="Product category"
+                    />
+                    {errors.category && <span className="text-xs text-red-500">{errors.category.message}</span>}
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium">Opening hours</label>
+                    <input
+                      {...register("opening")}
+                      className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
+                      placeholder="e.g. Mon-Fri 9am-6pm"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2 md:col-span-2">
+                    <label className="text-sm font-medium">Shop bio</label>
+                    <textarea
+                      {...register("bio")}
+                      className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
+                      placeholder="Tell customers about your shop"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2 md:col-span-2">
+                    <label className="text-sm font-medium">Address</label>
+                    <input
+                      {...register("address", { required: "Address is required" })}
+                      className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
+                      placeholder="Shop address"
+                    />
+                    {errors.address && <span className="text-xs text-red-500">{errors.address.message}</span>}
+                  </div>
+
+                  <div className="flex flex-col gap-2 md:col-span-2">
+                    <label className="text-sm font-medium">Website (optional)</label>
+                    <input
+                      {...register("website")}
+                      className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
+                      placeholder="https://your-shop.com"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between gap-3">
                   <button type="button" onClick={() => setStep(1)} className="px-4 py-2 border rounded-md">
                     Back
                   </button>
-                  <button type="submit" className="px-4 py-2 text-white bg-blue-600 rounded-md">
-                    Save & Continue
-                  </button>
-                </div>
-              </>
-            )}
-
-            {/* STEP 3: Add bank */}
-            {step === 3 && (
-              <>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium">Account holder name</label>
-                    <input
-                      {...register("accountHolderName", { required: "Account holder name is required" })}
-                      className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
-                      placeholder="Full name on the account"
-                    />
-                    {errors.accountHolderName && <span className="text-xs text-red-500">{errors.accountHolderName.message}</span>}
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium">Bank name</label>
-                    <input
-                      {...register("bankName", { required: "Bank name is required" })}
-                      className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
-                      placeholder="Bank name"
-                    />
-                    {errors.bankName && <span className="text-xs text-red-500">{errors.bankName.message}</span>}
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium">Account number</label>
-                    <input
-                      {...register("accountNumber", { required: "Account number is required" })}
-                      className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
-                      placeholder="Account number"
-                    />
-                    {errors.accountNumber && <span className="text-xs text-red-500">{errors.accountNumber.message}</span>}
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium">IFSC / Swift</label>
-                    <input
-                      {...register("ifsc", { required: "IFSC / Swift is required" })}
-                      className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
-                      placeholder="IFSC or SWIFT code"
-                    />
-                    {errors.ifsc && <span className="text-xs text-red-500">{errors.ifsc.message}</span>}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between gap-3">
-                  <button type="button" onClick={() => setStep(2)} className="px-4 py-2 border rounded-md">
-                    Back
-                  </button>
-                  <button type="submit" className="px-4 py-2 text-white bg-blue-600 rounded-md">
-                    Finish
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-70"
+                    disabled={isCreatingShop}
+                  >
+                    {isCreatingShop ? "Creating shop..." : "Create shop"}
                   </button>
                 </div>
               </>

@@ -3,8 +3,11 @@ import { z as zod } from 'zod';
 import { ValidationError } from '../../../../libs/middlewares';
 
 export const validateSignupData = (userType: 'seller' | 'user' | 'admin') => {
+  console.log("signup schema triggered");
   return (req: Request, res: Response, next: NextFunction) => {
     // Base schema
+    console.log("data came for validation" , req.body);
+
     let schema = zod.object({
       name: zod
         .string()
@@ -22,6 +25,11 @@ export const validateSignupData = (userType: 'seller' | 'user' | 'admin') => {
         }),
       phoneNumber: zod.string().optional(),
       country: zod.string().optional(),
+      otp: zod
+        .string()
+        .trim()
+        .regex(/^\d{6}$/, 'OTP must be a 6-digit numeric code')
+        .optional(),
     });
 
     // Extra validation for seller
@@ -35,15 +43,26 @@ export const validateSignupData = (userType: 'seller' | 'user' | 'admin') => {
       );
     }
 
-    const result = schema.safeParse({
+    const dataForValidation: Record<string, unknown> = {
       ...req.body,
-      usertype: userType, 
-    });
+      usertype: userType,
+    };
+
+    if (dataForValidation.otp !== undefined && dataForValidation.otp !== null) {
+      dataForValidation.otp = String(dataForValidation.otp).trim();
+    }
+
+    const result = schema.safeParse(dataForValidation);
+
+
 
     if (!result.success) {
       console.log('user data verifier middleware triggered');
       throw new ValidationError(result.error.message, result.error.issues);
     }
+
+    req.body = result.data;
+    req.validatedData = result.data;
 
     next();
   };

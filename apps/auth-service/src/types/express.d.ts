@@ -7,6 +7,7 @@ export type ValidatedData = {
   usertype: 'admin' | 'seller' | 'user';
   phoneNumber?: string;
   country?: string;
+  otp?: string;
 };
 
 declare global {

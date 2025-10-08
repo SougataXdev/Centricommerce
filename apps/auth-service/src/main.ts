@@ -2,7 +2,8 @@ import express from 'express';
 import cors from "cors"
 import { errorMiddleware } from '../../../libs/middlewares/errorMiddleware';
 import cookieParser from 'cookie-parser';
-import router from './routes/user.routes';
+import userRoutes  from './routes/user.routes';
+import sellerRoutes from './routes/seller.routes'
 
 const host = process.env.HOST ?? 'localhost';
 const port = process.env.PORT ? Number(process.env.PORT) : 6001;
@@ -25,7 +26,8 @@ app.get('/', (req, res) => {
   res.send({ message: 'Hello from AUTH service' });
 });
 
-app.use("/api" , router);
+app.use("/api" , userRoutes);
+app.use("/api/seller", sellerRoutes)
 
 // Error handler should be last
 app.use(errorMiddleware);
