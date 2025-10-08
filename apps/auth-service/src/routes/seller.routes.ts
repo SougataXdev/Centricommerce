@@ -6,6 +6,8 @@ import { verifyOtp } from '../helpers/auth.helper';
 import {
   createSeller,
   createShop,
+  createStripeConnectLink,
+  loginSeller,
   sendSellerSignUpOtp,
 } from '../controllers/seller.controller';
 
@@ -30,6 +32,8 @@ router.post(
 );
 
 router.post('/createshop', createShop);
+router.post('/stripe/connect-link', createStripeConnectLink);
+router.post('/login', normalizeEmail, loginSeller);
 
 
 export default router;

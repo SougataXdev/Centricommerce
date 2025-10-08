@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import axios, { AxiosError } from "axios";
 import { Eye, EyeOff } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 
 type SignupForm = {
@@ -56,15 +55,14 @@ const COUNTRY_OPTIONS = [
 const API_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://localhost:8080/api";
 
 export default function SellerSignupPage() {
-  const router = useRouter();
-  const [step, setStep] = useState<1 | 2 | 3>(3);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [showOtp, setShowOtp] = useState(false);
   const [canSend, setCanSend] = useState(true);
   const [timer, setTimer] = useState(60);
   const [showPassword, setShowPassword] = useState(false);
   const [accountPayload, setAccountPayload] = useState<SellerAccountPayload | null>(null);
   const [sellerId, setSellerId] = useState<string | null>(null);
-  const [isStripeConnecting, setIsStripeConnecting] = useState(false);
+  const [stripeError, setStripeError] = useState<string | null>(null);
 
   const {
     register,
@@ -147,11 +145,37 @@ export default function SellerSignupPage() {
       return res.data as { success?: boolean };
     },
     onSuccess: () => {
+      setStripeError(null);
       setStep(3);
     },
     onError: (error: AxiosError<{ message?: string }>) => {
       const message = error.response?.data?.message ?? "Failed to create shop";
       setError("shopName", { message });
+    },
+  });
+
+  const stripeConnectMutation = useMutation({
+    mutationFn: async (resolvedSellerId: string) => {
+      const res = await axios.post(
+        `${API_BASE_URL}/seller/stripe/connect-link`,
+        { sellerId: resolvedSellerId },
+        {
+          withCredentials: true,
+        }
+      );
+      return res.data as { success?: boolean; url?: string };
+    },
+    onSuccess: (data) => {
+      setStripeError(null);
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        setStripeError("Stripe did not return a connect link. Please try again.");
+      }
+    },
+    onError: (error: AxiosError<{ message?: string }>) => {
+      const message = error.response?.data?.message ?? 'Failed to create Stripe connect link';
+      setStripeError(message);
     },
   });
 
@@ -219,19 +243,13 @@ export default function SellerSignupPage() {
   };
 
   const handleConnectStripe = () => {
-    if (!sellerId || isStripeConnecting) {
+    if (!sellerId || stripeConnectMutation.isPending) {
       return;
     }
 
-    setIsStripeConnecting(true);
-
-    setTimeout(() => {
-      setIsStripeConnecting(false);
-      router.push("/login");
-    }, 800);
+    setStripeError(null);
+    stripeConnectMutation.mutate(sellerId);
   };
-
-
 
   const StepperHeader = () => {
     const steps = ["Seller details", "Shop setup", "Stripe connect"];
@@ -506,10 +524,13 @@ export default function SellerSignupPage() {
                   type="button"
                   onClick={handleConnectStripe}
                   className="flex items-center gap-3 px-6 py-3 text-sm font-medium text-white transition-transform bg-[#635BFF] rounded-lg shadow-sm hover:bg-[#4f46e5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#635BFF] disabled:opacity-70 disabled:pointer-events-none"
-                  disabled={!sellerId || isStripeConnecting}
+                  disabled={!sellerId || stripeConnectMutation.isPending}
                 >
-                  <span>{isStripeConnecting ? "Redirecting..." : "Connect Stripe"}</span>
+                  {stripeConnectMutation.isPending ? "Redirecting..." : "Connect Stripe"}
                 </button>
+                {stripeError && (
+                  <p className="text-sm text-red-500">{stripeError}</p>
+                )}
                 <p className="text-xs text-gray-400">
                   Stripe connects securely with your shop. You can revisit this step anytime from your dashboard.
                 </p>

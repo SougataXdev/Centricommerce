@@ -3,6 +3,113 @@ import type { ValidatedData } from '../types/express';
 import prisma from '../../../../libs/prisma';
 import { sendOtp } from '../helpers/auth.helper';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import Stripe from 'stripe';
+
+let stripeClient: Stripe | null = null;
+
+const getSellerAppUrl = () =>
+  process.env.SELLER_APP_URL ??
+  process.env.SELLER_FRONTEND_URL ??
+  process.env.APP_URL ??
+  'http://localhost:3000';
+
+const buildSellerOnboardingUrl = (path: string) => {
+  const base = getSellerAppUrl();
+
+  try {
+    return new URL(path, base).toString();
+  } catch (error) {
+    const normalizedBase = base.endsWith('/') ? base.slice(0, -1) : base;
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    return `${normalizedBase}${normalizedPath}`;
+  }
+};
+
+const getStripeClient = () => {
+  if (stripeClient) {
+    return stripeClient;
+  }
+
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+  if (!stripeSecretKey) {
+    return null;
+  }
+
+  stripeClient = new Stripe(stripeSecretKey);
+
+  return stripeClient;
+};
+
+const supportedRegionCodes: string[] = (() => {
+  try {
+    if (typeof (Intl as never as { supportedValuesOf?: unknown }).supportedValuesOf === 'function') {
+      const fn = (Intl as unknown as { supportedValuesOf: (value: string) => string[] }).supportedValuesOf;
+      return fn('region');
+    }
+  } catch (error) {
+    console.warn('Unable to determine supported region codes:', error);
+  }
+
+  return [];
+})();
+
+const regionDisplay =
+  typeof Intl.DisplayNames === 'function'
+    ? new Intl.DisplayNames(['en'], { type: 'region' })
+    : null;
+
+const countryNameToCodeMap = new Map<string, string>();
+
+const resolveStripeCountry = (input?: string | null): string => {
+  if (!input) {
+    return 'US';
+  }
+
+  const trimmed = input.trim();
+
+  if (trimmed.length === 0) {
+    return 'US';
+  }
+
+  if (/^[A-Za-z]{2}$/.test(trimmed)) {
+    const upper = trimmed.toUpperCase();
+
+    if (supportedRegionCodes.length === 0 || supportedRegionCodes.includes(upper)) {
+      return upper;
+    }
+  }
+
+  if (!regionDisplay || supportedRegionCodes.length === 0) {
+    return 'US';
+  }
+
+  const normalized = trimmed.toLowerCase();
+
+  const cached = countryNameToCodeMap.get(normalized);
+  if (cached) {
+    return cached;
+  }
+
+  const match = supportedRegionCodes.find((code) => {
+    if (!/^[A-Za-z]{2}$/.test(code)) {
+      return false;
+    }
+
+    const displayName = regionDisplay.of(code);
+
+    return displayName ? displayName.toLowerCase() === normalized : false;
+  });
+
+  if (match) {
+    const upper = match.toUpperCase();
+    countryNameToCodeMap.set(normalized, upper);
+    return upper;
+  }
+
+  return 'US';
+};
 
 export const sendSellerSignUpOtp = async (req: Request, res: Response) => {
   try {
@@ -143,4 +250,207 @@ export const createShop = async (req:Request , res:Response) =>{
 
 
 
-//todo:create stripe url
+export const loginSeller = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body as { email?: string; password?: string };
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required',
+      });
+    }
+
+    const seller = await prisma.sellers.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phoneNumber: true,
+        country: true,
+        stripeId: true,
+        password: true,
+      },
+    });
+
+    if (!seller || !seller.password) {
+      return res
+        .status(401)
+        .json({ success: false, message: 'Invalid credentials' });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, seller.password);
+
+    if (!isPasswordValid) {
+      return res
+        .status(401)
+        .json({ success: false, message: 'Invalid credentials' });
+    }
+
+    const accessToken = jwt.sign(
+      { id: seller.id, role: 'seller' },
+      process.env.ACCESS_TOKEN_SECRET as string,
+      { expiresIn: '15m' }
+    );
+
+    const refreshToken = jwt.sign(
+      { id: seller.id, email: seller.email, role: 'seller' },
+      process.env.REFRESH_TOKEN_SECRET as string,
+      { expiresIn: '7d' }
+    );
+
+    res.cookie('accessToken', accessToken, {
+      sameSite: 'strict',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 15 * 60 * 1000,
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      sameSite: 'strict',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    const { password: _password, ...sellerData } = seller;
+
+    return res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      seller: sellerData,
+    });
+  } catch (error) {
+    console.error('Seller login error:', error);
+    return res
+      .status(500)
+      .json({ success: false, message: 'Internal server error' });
+  }
+};
+
+
+export const createStripeConnectLink = async (req: Request, res: Response) => {
+  try {
+    const stripe = getStripeClient();
+
+    if (!stripe) {
+      return res.status(500).json({
+        success: false,
+        message: 'Stripe secret key is not configured',
+      });
+    }
+
+    const { sellerId } = req.body as { sellerId?: string };
+
+    if (!sellerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'sellerId is required',
+      });
+    }
+
+    const seller = await prisma.sellers.findUnique({
+      where: { id: sellerId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        stripeId: true,
+        country: true,
+      },
+    });
+
+    if (!seller) {
+      return res.status(404).json({
+        success: false,
+        message: 'Seller not found',
+      });
+    }
+
+    let accountId = seller.stripeId;
+
+    if (!accountId) {
+      const account = await stripe.accounts.create({
+        type: 'express',
+        email: seller.email,
+        country: resolveStripeCountry(seller.country),
+        metadata: {
+          sellerId: seller.id,
+          sellerName: seller.name,
+        },
+        capabilities: {
+          transfers: { requested: true },
+          card_payments: { requested: true },
+        },
+      });
+
+      accountId = account.id;
+
+      await prisma.sellers.update({
+        where: { id: seller.id },
+        data: { stripeId: accountId },
+      });
+    }
+
+    const refreshBaseUrl =
+      process.env.STRIPE_CONNECT_REFRESH_URL ??
+      buildSellerOnboardingUrl('/signup?step=3&refresh=true');
+
+    const returnBaseUrl =
+      process.env.STRIPE_CONNECT_RETURN_URL ??
+      buildSellerOnboardingUrl('/signup?step=3&completed=true');
+
+    const accountLink = await stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: refreshBaseUrl,
+      return_url: returnBaseUrl,
+      type: 'account_onboarding',
+    });
+
+    return res.status(200).json({
+      success: true,
+      url: accountLink.url,
+      expires_at: accountLink.expires_at,
+      account: accountId,
+    });
+  } catch (error) {
+    console.error('Stripe connect link error:', error);
+
+    const errorDetails = (() => {
+      if (
+        process.env.NODE_ENV === 'production' ||
+        !error ||
+        typeof error !== 'object'
+      ) {
+        return undefined;
+      }
+
+      const maybeStripeError = error as {
+        message?: string;
+        code?: string;
+        type?: string;
+        doc_url?: string;
+      };
+
+      return {
+        message: maybeStripeError.message ?? 'Unknown error',
+        code: maybeStripeError.code,
+        type: maybeStripeError.type,
+        documentation_url: maybeStripeError.doc_url,
+      };
+    })();
+
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to create Stripe connect link',
+      ...(errorDetails ? { details: errorDetails } : {}),
+    });
+  }
+};
+
+
+
+
+
+
