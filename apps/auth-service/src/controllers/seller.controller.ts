@@ -115,12 +115,11 @@ export const createSeller = async (req: Request, res: Response) => {
     if (isExistingUser) {
       return res.status(409).json({
         success: false,
-        message: "Seller with this email already exists",
+        message: 'Seller with this email already exists',
       });
     }
 
     const hashedPassword = await bcrypt.hash(password, 20);
-
 
     const createdSeller = await prisma.sellers.create({
       data: {
@@ -141,76 +140,74 @@ export const createSeller = async (req: Request, res: Response) => {
 
     return res.status(201).json({
       success: true,
-      message: "Seller created successfully",
+      message: 'Seller created successfully',
       seller: createdSeller,
     });
-
   } catch (error) {
     console.error(error);
     return res.status(500).json({
       success: false,
-      message: "Internal server error",
+      message: 'Internal server error',
     });
   }
 };
 
+export const createShop = async (req: Request, res: Response) => {
+  try {
+    const { shopName, bio, address, opening, website, category, sellerId } =
+      req.body;
 
-export const createShop = async (req:Request , res:Response) =>{
-    try {
-        const {shopName , bio , address , opening ,website , category , sellerId} = req.body;
-
-        if (!shopName || !category || !address || !sellerId) {
-            return res.status(400).json({
-                success: false,
-                message: "All required fields (shopName, category, address, sellerId) must be provided"
-            });
-        }
-
-        const shopData:any = {
-            name: shopName,  
-            category,
-            address, 
-            sellerId
-        }
-
-        if (bio && bio.trim() !== "") {
-            shopData.bio = bio;
-        }
-
-        if (opening && opening.trim() !== "") {
-            shopData.opening = opening;
-        }
-
-        if (website && website.trim() !== "") {
-            shopData.website = website;
-        }
-
-        const createdShop = await prisma.shops.create({
-            data:shopData
-        })
-
-
-        return res.status(201).json({
-            success:true,
-            shop:createdShop,
-            message:"shop created succesfully"
-        })
-        
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error while creating a shop",
-            
-        });
+    if (!shopName || !category || !address || !sellerId) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'All required fields (shopName, category, address, sellerId) must be provided',
+      });
     }
-}
 
+    const shopData: any = {
+      name: shopName,
+      category,
+      address,
+      sellerId,
+    };
 
+    if (bio && bio.trim() !== '') {
+      shopData.bio = bio;
+    }
+
+    if (opening && opening.trim() !== '') {
+      shopData.opening = opening;
+    }
+
+    if (website && website.trim() !== '') {
+      shopData.website = website;
+    }
+
+    const createdShop = await prisma.shops.create({
+      data: shopData,
+    });
+
+    return res.status(201).json({
+      success: true,
+      shop: createdShop,
+      message: 'shop created succesfully',
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error while creating a shop',
+    });
+  }
+};
 
 export const loginSeller = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body as { email?: string; password?: string };
+    const { email, password } = req.body as {
+      email?: string;
+      password?: string;
+    };
 
     if (!email || !password) {
       return res.status(400).json({
@@ -286,7 +283,6 @@ export const loginSeller = async (req: Request, res: Response) => {
       .json({ success: false, message: 'Internal server error' });
   }
 };
-
 
 export const createStripeConnectLink = async (req: Request, res: Response) => {
   try {
@@ -381,9 +377,3 @@ export const createStripeConnectLink = async (req: Request, res: Response) => {
     });
   }
 };
-
-
-
-
-
-
