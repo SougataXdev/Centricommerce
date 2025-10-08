@@ -8,6 +8,20 @@ import Stripe from 'stripe';
 
 let stripeClient: Stripe | null = null;
 
+const SELLER_RETURN_PATH = '/signup?step=3&completed=true';
+const SELLER_REFRESH_PATH = '/signup?step=3&refresh=true';
+
+const COUNTRY_LABEL_TO_CODE: Record<string, string> = {
+  india: 'IN',
+  'united states': 'US',
+  'united kingdom': 'GB',
+  canada: 'CA',
+  australia: 'AU',
+  germany: 'DE',
+  france: 'FR',
+  spain: 'ES',
+};
+
 const getSellerAppUrl = () =>
   process.env.SELLER_APP_URL ??
   process.env.SELLER_FRONTEND_URL ??
@@ -15,15 +29,9 @@ const getSellerAppUrl = () =>
   'http://localhost:3000';
 
 const buildSellerOnboardingUrl = (path: string) => {
-  const base = getSellerAppUrl();
-
-  try {
-    return new URL(path, base).toString();
-  } catch (error) {
-    const normalizedBase = base.endsWith('/') ? base.slice(0, -1) : base;
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    return `${normalizedBase}${normalizedPath}`;
-  }
+  const base = getSellerAppUrl().replace(/\/$/, '');
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${base}${normalizedPath}`;
 };
 
 const getStripeClient = () => {
@@ -42,26 +50,6 @@ const getStripeClient = () => {
   return stripeClient;
 };
 
-const supportedRegionCodes: string[] = (() => {
-  try {
-    if (typeof (Intl as never as { supportedValuesOf?: unknown }).supportedValuesOf === 'function') {
-      const fn = (Intl as unknown as { supportedValuesOf: (value: string) => string[] }).supportedValuesOf;
-      return fn('region');
-    }
-  } catch (error) {
-    console.warn('Unable to determine supported region codes:', error);
-  }
-
-  return [];
-})();
-
-const regionDisplay =
-  typeof Intl.DisplayNames === 'function'
-    ? new Intl.DisplayNames(['en'], { type: 'region' })
-    : null;
-
-const countryNameToCodeMap = new Map<string, string>();
-
 const resolveStripeCountry = (input?: string | null): string => {
   if (!input) {
     return 'US';
@@ -74,41 +62,11 @@ const resolveStripeCountry = (input?: string | null): string => {
   }
 
   if (/^[A-Za-z]{2}$/.test(trimmed)) {
-    const upper = trimmed.toUpperCase();
-
-    if (supportedRegionCodes.length === 0 || supportedRegionCodes.includes(upper)) {
-      return upper;
-    }
-  }
-
-  if (!regionDisplay || supportedRegionCodes.length === 0) {
-    return 'US';
+    return trimmed.toUpperCase();
   }
 
   const normalized = trimmed.toLowerCase();
-
-  const cached = countryNameToCodeMap.get(normalized);
-  if (cached) {
-    return cached;
-  }
-
-  const match = supportedRegionCodes.find((code) => {
-    if (!/^[A-Za-z]{2}$/.test(code)) {
-      return false;
-    }
-
-    const displayName = regionDisplay.of(code);
-
-    return displayName ? displayName.toLowerCase() === normalized : false;
-  });
-
-  if (match) {
-    const upper = match.toUpperCase();
-    countryNameToCodeMap.set(normalized, upper);
-    return upper;
-  }
-
-  return 'US';
+  return COUNTRY_LABEL_TO_CODE[normalized] ?? 'US';
 };
 
 export const sendSellerSignUpOtp = async (req: Request, res: Response) => {
@@ -395,11 +353,11 @@ export const createStripeConnectLink = async (req: Request, res: Response) => {
 
     const refreshBaseUrl =
       process.env.STRIPE_CONNECT_REFRESH_URL ??
-      buildSellerOnboardingUrl('/signup?step=3&refresh=true');
+      buildSellerOnboardingUrl(SELLER_REFRESH_PATH);
 
     const returnBaseUrl =
       process.env.STRIPE_CONNECT_RETURN_URL ??
-      buildSellerOnboardingUrl('/signup?step=3&completed=true');
+      buildSellerOnboardingUrl(SELLER_RETURN_PATH);
 
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
@@ -417,34 +375,9 @@ export const createStripeConnectLink = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Stripe connect link error:', error);
 
-    const errorDetails = (() => {
-      if (
-        process.env.NODE_ENV === 'production' ||
-        !error ||
-        typeof error !== 'object'
-      ) {
-        return undefined;
-      }
-
-      const maybeStripeError = error as {
-        message?: string;
-        code?: string;
-        type?: string;
-        doc_url?: string;
-      };
-
-      return {
-        message: maybeStripeError.message ?? 'Unknown error',
-        code: maybeStripeError.code,
-        type: maybeStripeError.type,
-        documentation_url: maybeStripeError.doc_url,
-      };
-    })();
-
     return res.status(500).json({
       success: false,
       message: 'Failed to create Stripe connect link',
-      ...(errorDetails ? { details: errorDetails } : {}),
     });
   }
 };
