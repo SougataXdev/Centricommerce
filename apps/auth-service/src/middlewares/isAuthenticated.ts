@@ -16,8 +16,6 @@ type AuthOptions = {
 const createAuthGuard = (options: AuthOptions = {}) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-
-      console.log("header : " , req.headers);
       const token =
         req.cookies?.accessToken || req.headers.authorization?.split(' ')[1];
         console.log("token" , token); 

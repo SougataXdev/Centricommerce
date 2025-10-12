@@ -7,7 +7,7 @@ const useSeller = () => {
   const pathname = usePathname();
   const isAuthPage = pathname === '/login' || pathname === '/register';
 
-  return useQuery({
+  const seller = useQuery({
     queryKey: ['seller'],
     queryFn: async () => {
       const res = await axiosInstance.get('/me');
@@ -23,6 +23,9 @@ const useSeller = () => {
     refetchOnWindowFocus: false,
     enabled: !isAuthPage,
   });
+
+  console.log("Seller" , seller.data);
+  return seller
 };
 
 export default useSeller;

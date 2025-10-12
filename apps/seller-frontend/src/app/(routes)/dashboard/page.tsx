@@ -1,3 +1,5 @@
+"use client";
+import useSeller from '@/hooks/useSeller';
 import { LineChart, Package, PlusCircle, Settings, Wallet } from 'lucide-react';
 
 const analyticsHighlights = [
@@ -58,6 +60,14 @@ const statusStyles: Record<string, string> = {
 };
 
 const Page = () => {
+
+  const seller = useSeller();
+  console.log("seller" ,seller)
+  
+  if (seller.isLoading) {
+    return <div className="text-center text-slate-500">Loading...</div>;
+  }
+
   return (
     <>
       <header className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between">

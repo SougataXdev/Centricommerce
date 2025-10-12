@@ -6,7 +6,6 @@ import { Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { useMutation } from '@tanstack/react-query';
 import axios, { AxiosError } from 'axios';
-import { error } from 'console';
 
 type FormData = {
   email: string;
@@ -29,7 +28,7 @@ const Page = () => {
 
   const loginmutation = useMutation({
     mutationFn: async (data: FormData) => {
-      const res = await axios.post('http://localhost:8080/api/login', data, {
+      const res = await axios.post('http://localhost:8080/api/seller/login', data, {
         withCredentials: true,
       });
       return res.data;
