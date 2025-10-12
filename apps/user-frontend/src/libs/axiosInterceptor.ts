@@ -1,5 +1,12 @@
 import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    _retry?: boolean;
+    skipAuthRedirect?: boolean;
+  }
+}
+
 const axiosInstance = axios.create({
   baseURL: 'http://localhost:8080/api',
   withCredentials: true, // always send cookies
@@ -43,11 +50,17 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (
-    error: AxiosError & { config?: AxiosRequestConfig & { _retry?: boolean } }
+    error: AxiosError & {
+      config?: AxiosRequestConfig & { skipAuthRedirect?: boolean };
+    }
   ) => {
     const originalRequest = error.config;
 
     if (!error.response || !originalRequest) {
+      return Promise.reject(error);
+    }
+
+    if (originalRequest.skipAuthRedirect) {
       return Promise.reject(error);
     }
 
@@ -86,7 +99,9 @@ axiosInstance.interceptors.response.use(
       } catch (err) {
         isRefreshing = false;
         onRefreshFailure(err);
-        handleLogout();
+        if (!originalRequest.skipAuthRedirect) {
+          handleLogout();
+        }
         return Promise.reject(err);
       }
     }

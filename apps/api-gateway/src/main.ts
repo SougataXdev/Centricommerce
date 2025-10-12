@@ -1,7 +1,3 @@
-/**
- * This is not a production server yet!
- * This is only a minimal backend to get started.
- */
 
 import cors from 'cors';
 import express from 'express';
@@ -36,7 +32,7 @@ app.use(limiter);
 
 app.use(
   cors({
-    origin: ['http://localhost:3000'],
+    origin: ['http://localhost:3000' , "http://localhost:3001"],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   })

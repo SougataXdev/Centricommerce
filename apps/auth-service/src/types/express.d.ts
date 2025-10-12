@@ -1,4 +1,5 @@
 import { Request } from 'express';
+import type { AuthRole } from '../services/auth-tokens.service';
 
 export type ValidatedData = {
   name: string;
@@ -17,7 +18,7 @@ declare global {
       resetEmail?: string;
       user?: {
         id: string;
-        role?: 'user' | 'admin' | 'seller' | string;
+        role?: AuthRole | string;
         email?: string;
         [key: string]: any;
       };

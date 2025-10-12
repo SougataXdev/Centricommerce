@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import axios, { AxiosError } from "axios";
-import { Eye, EyeOff } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
+import React, { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import axios, { AxiosError } from 'axios';
+import { Eye, EyeOff } from 'lucide-react';
+import { useMutation } from '@tanstack/react-query';
 
 type SignupForm = {
   name: string;
@@ -28,7 +28,7 @@ type SellerAccountPayload = {
   password: string;
   phoneNumber: string;
   country: string;
-  usertype: "seller";
+  usertype: 'seller';
 };
 
 type CreateShopPayload = {
@@ -42,17 +42,18 @@ type CreateShopPayload = {
 };
 
 const COUNTRY_OPTIONS = [
-  { code: "IN", label: "India" },
-  { code: "US", label: "United States" },
-  { code: "GB", label: "United Kingdom" },
-  { code: "CA", label: "Canada" },
-  { code: "AU", label: "Australia" },
-  { code: "DE", label: "Germany" },
-  { code: "FR", label: "France" },
-  { code: "ES", label: "Spain" },
+  { code: 'IN', label: 'India' },
+  { code: 'US', label: 'United States' },
+  { code: 'GB', label: 'United Kingdom' },
+  { code: 'CA', label: 'Canada' },
+  { code: 'AU', label: 'Australia' },
+  { code: 'DE', label: 'Germany' },
+  { code: 'FR', label: 'France' },
+  { code: 'ES', label: 'Spain' },
 ];
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://localhost:8080/api";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_AUTH_API_URL ?? 'http://localhost:8080/api';
 
 export default function SellerSignupPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -60,7 +61,8 @@ export default function SellerSignupPage() {
   const [canSend, setCanSend] = useState(true);
   const [timer, setTimer] = useState(60);
   const [showPassword, setShowPassword] = useState(false);
-  const [accountPayload, setAccountPayload] = useState<SellerAccountPayload | null>(null);
+  const [accountPayload, setAccountPayload] =
+    useState<SellerAccountPayload | null>(null);
   const [sellerId, setSellerId] = useState<string | null>(null);
   const [stripeError, setStripeError] = useState<string | null>(null);
 
@@ -71,7 +73,7 @@ export default function SellerSignupPage() {
     setError,
     formState: { errors },
   } = useForm<SignupForm>({
-    defaultValues: { country: COUNTRY_OPTIONS[0]?.label ?? "" },
+    defaultValues: { country: COUNTRY_OPTIONS[0]?.label ?? '' },
   });
 
   useEffect(() => {
@@ -93,9 +95,13 @@ export default function SellerSignupPage() {
 
   const sendOtpMutation = useMutation({
     mutationFn: async (payload: SellerAccountPayload) => {
-      const res = await axios.post(`${API_BASE_URL}/seller/send-seller-otp`, payload, {
-        withCredentials: true,
-      });
+      const res = await axios.post(
+        `${API_BASE_URL}/seller/send-seller-otp`,
+        payload,
+        {
+          withCredentials: true,
+        }
+      );
       return res.data as { message?: string };
     },
     onSuccess: () => {
@@ -103,7 +109,12 @@ export default function SellerSignupPage() {
       setCanSend(false);
       setTimer(60);
     },
-    onError: (error: AxiosError<{ message?: string; issues?: Array<{ path?: string[]; message: string }> }>) => {
+    onError: (
+      error: AxiosError<{
+        message?: string;
+        issues?: Array<{ path?: string[]; message: string }>;
+      }>
+    ) => {
       const issue = error.response?.data?.issues?.[0];
       if (issue?.path?.length) {
         setError(issue.path[0] as keyof SignupForm, { message: issue.message });
@@ -111,20 +122,29 @@ export default function SellerSignupPage() {
       }
       const message = error.response?.data?.message;
       if (message) {
-        setError("email", { message });
+        setError('email', { message });
       }
     },
   });
 
   const verifySellerMutation = useMutation({
     mutationFn: async (payload: SellerAccountPayload & { otp: string }) => {
-      const res = await axios.post(`${API_BASE_URL}/seller/verify-create-seller`, payload, {
-        withCredentials: true,
-      });
-      return res.data as { success?: boolean; seller?: { id?: string; _id?: string }; sellerId?: string };
+      const res = await axios.post(
+        `${API_BASE_URL}/seller/verify-create-seller`,
+        payload,
+        {
+          withCredentials: true,
+        }
+      );
+      return res.data as {
+        success?: boolean;
+        seller?: { id?: string; _id?: string };
+        sellerId?: string;
+      };
     },
     onSuccess: (data) => {
-      const resolvedId = data?.seller?.id ?? data?.seller?._id ?? data?.sellerId ?? null;
+      const resolvedId =
+        data?.seller?.id ?? data?.seller?._id ?? data?.sellerId ?? null;
       if (resolvedId) {
         setSellerId(resolvedId);
       }
@@ -132,16 +152,21 @@ export default function SellerSignupPage() {
       setStep(2);
     },
     onError: (error: AxiosError<{ message?: string }>) => {
-      const message = error.response?.data?.message ?? "OTP verification failed";
-      setError("otp", { message });
+      const message =
+        error.response?.data?.message ?? 'OTP verification failed';
+      setError('otp', { message });
     },
   });
 
   const createShopMutation = useMutation({
     mutationFn: async (payload: CreateShopPayload) => {
-      const res = await axios.post(`${API_BASE_URL}/seller/createshop`, payload, {
-        withCredentials: true,
-      });
+      const res = await axios.post(
+        `${API_BASE_URL}/seller/createshop`,
+        payload,
+        {
+          withCredentials: true,
+        }
+      );
       return res.data as { success?: boolean };
     },
     onSuccess: () => {
@@ -149,8 +174,8 @@ export default function SellerSignupPage() {
       setStep(3);
     },
     onError: (error: AxiosError<{ message?: string }>) => {
-      const message = error.response?.data?.message ?? "Failed to create shop";
-      setError("shopName", { message });
+      const message = error.response?.data?.message ?? 'Failed to create shop';
+      setError('shopName', { message });
     },
   });
 
@@ -170,11 +195,14 @@ export default function SellerSignupPage() {
       if (data?.url) {
         window.location.href = data.url;
       } else {
-        setStripeError("Stripe did not return a connect link. Please try again.");
+        setStripeError(
+          'Stripe did not return a connect link. Please try again.'
+        );
       }
     },
     onError: (error: AxiosError<{ message?: string }>) => {
-      const message = error.response?.data?.message ?? 'Failed to create Stripe connect link';
+      const message =
+        error.response?.data?.message ?? 'Failed to create Stripe connect link';
       setStripeError(message);
     },
   });
@@ -189,7 +217,7 @@ export default function SellerSignupPage() {
   const onSubmit = (data: SignupForm) => {
     if (step === 1 && !showOtp) {
       if (data.password !== data.confirmPassword) {
-        setError("confirmPassword", { message: "Passwords do not match" });
+        setError('confirmPassword', { message: 'Passwords do not match' });
         return;
       }
 
@@ -199,7 +227,7 @@ export default function SellerSignupPage() {
         password: data.password,
         phoneNumber: data.phoneNumber,
         country: data.country,
-        usertype: "seller",
+        usertype: 'seller',
       };
 
       setAccountPayload(payload);
@@ -209,12 +237,12 @@ export default function SellerSignupPage() {
 
     if (step === 1 && showOtp) {
       if (!data.otp || data.otp.trim().length !== 6) {
-        setError("otp", { message: "Enter a valid 6-digit OTP" });
+        setError('otp', { message: 'Enter a valid 6-digit OTP' });
         return;
       }
 
       if (!accountPayload) {
-        setError("email", { message: "Please restart the signup flow" });
+        setError('email', { message: 'Please restart the signup flow' });
         return;
       }
 
@@ -224,17 +252,19 @@ export default function SellerSignupPage() {
 
     if (step === 2) {
       if (!sellerId) {
-        setError("shopName", { message: "Missing seller id. Please retry verification." });
+        setError('shopName', {
+          message: 'Missing seller id. Please retry verification.',
+        });
         return;
       }
 
       const payload: CreateShopPayload = {
-        shopName: data.shopName ?? "",
+        shopName: data.shopName ?? '',
         bio: data.bio,
-        address: data.address ?? "",
+        address: data.address ?? '',
         opening: data.opening,
         website: data.website,
-        category: data.category ?? "",
+        category: data.category ?? '',
         sellerId,
       };
 
@@ -252,7 +282,7 @@ export default function SellerSignupPage() {
   };
 
   const StepperHeader = () => {
-    const steps = ["Seller details", "Shop setup", "Stripe connect"];
+    const steps = ['Seller details', 'Shop setup', 'Stripe connect'];
     return (
       <div className="flex items-center gap-4 mb-6">
         {steps.map((label, index) => {
@@ -264,16 +294,24 @@ export default function SellerSignupPage() {
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold border-2 ${
                   active
-                    ? "border-blue-600 bg-blue-600 text-white"
+                    ? 'border-blue-600 bg-blue-600 text-white'
                     : done
-                    ? "border-green-500 bg-green-500 text-white"
-                    : "border-gray-300 text-gray-600 bg-white"
+                    ? 'border-green-500 bg-green-500 text-white'
+                    : 'border-gray-300 text-gray-600 bg-white'
                 }`}
               >
                 {idx}
               </div>
-              <div className={`text-sm ${active ? "text-gray-900 font-medium" : "text-gray-500"}`}>{label}</div>
-              {index !== steps.length - 1 && <div className="w-8 h-0.5 bg-gray-200 mx-3" />}
+              <div
+                className={`text-sm ${
+                  active ? 'text-gray-900 font-medium' : 'text-gray-500'
+                }`}
+              >
+                {label}
+              </div>
+              {index !== steps.length - 1 && (
+                <div className="w-8 h-0.5 bg-gray-200 mx-3" />
+              )}
             </div>
           );
         })}
@@ -291,64 +329,95 @@ export default function SellerSignupPage() {
         <div className="p-6 bg-white shadow-sm rounded-2xl md:p-8">
           <StepperHeader />
 
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="flex flex-col gap-6"
+          >
             {step === 1 && (
               <>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-medium">Name</label>
                     <input
-                      {...register("name", { required: "Name is required", minLength: { value: 3, message: "Name must be at least 3 characters" } })}
+                      {...register('name', {
+                        required: 'Name is required',
+                        minLength: {
+                          value: 3,
+                          message: 'Name must be at least 3 characters',
+                        },
+                      })}
                       className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
                       placeholder="Your full name"
                     />
-                    {errors.name && <span className="text-xs text-red-500">{errors.name.message}</span>}
+                    {errors.name && (
+                      <span className="text-xs text-red-500">
+                        {errors.name.message}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-medium">Phone number</label>
                     <input
                       type="tel"
-                      {...register("phoneNumber", {
-                        required: "Phone number is required",
+                      {...register('phoneNumber', {
+                        required: 'Phone number is required',
                         pattern: {
                           value: /^\+?\d{7,15}$/,
-                          message: "Enter a valid phone number",
+                          message: 'Enter a valid phone number',
                         },
                       })}
                       className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
                       placeholder="e.g. +919876543210"
                     />
-                    {errors.phoneNumber && <span className="text-xs text-red-500">{errors.phoneNumber.message}</span>}
+                    {errors.phoneNumber && (
+                      <span className="text-xs text-red-500">
+                        {errors.phoneNumber.message}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-medium">Email</label>
                     <input
                       type="email"
-                      {...register("email", {
-                        required: "Email is required",
+                      {...register('email', {
+                        required: 'Email is required',
                         pattern: {
-                          value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-                          message: "Enter a valid email",
+                          value:
+                            /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                          message: 'Enter a valid email',
                         },
                       })}
                       className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
                       placeholder="you@company.com"
                     />
-                    {errors.email && <span className="text-xs text-red-500">{errors.email.message}</span>}
+                    {errors.email && (
+                      <span className="text-xs text-red-500">
+                        {errors.email.message}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-medium">Country</label>
-                    <select {...register("country", { required: "Country is required" })} className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md">
+                    <select
+                      {...register('country', {
+                        required: 'Country is required',
+                      })}
+                      className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
+                    >
                       {COUNTRY_OPTIONS.map((c) => (
                         <option key={c.code} value={c.label}>
                           {c.label}
                         </option>
                       ))}
                     </select>
-                    {errors.country && <span className="text-xs text-red-500">{errors.country.message}</span>}
+                    {errors.country && (
+                      <span className="text-xs text-red-500">
+                        {errors.country.message}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -356,32 +425,51 @@ export default function SellerSignupPage() {
                   <div className="relative flex flex-col gap-2">
                     <label className="text-sm font-medium">Password</label>
                     <input
-                      type={showPassword ? "text" : "password"}
-                      {...register("password", {
-                        required: "Password is required",
-                        minLength: { value: 6, message: "Password must be at least 6 characters" },
+                      type={showPassword ? 'text' : 'password'}
+                      {...register('password', {
+                        required: 'Password is required',
+                        minLength: {
+                          value: 6,
+                          message: 'Password must be at least 6 characters',
+                        },
                       })}
                       className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
                       placeholder="Create a password"
                     />
-                    <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute right-3 top-9">
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((s) => !s)}
+                      className="absolute right-3 top-9"
+                    >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
-                    {errors.password && <span className="text-xs text-red-500">{errors.password.message}</span>}
+                    {errors.password && (
+                      <span className="text-xs text-red-500">
+                        {errors.password.message}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium">Confirm password</label>
+                    <label className="text-sm font-medium">
+                      Confirm password
+                    </label>
                     <input
                       type="password"
-                      {...register("confirmPassword", {
-                        required: "Confirm your password",
-                        validate: (value) => value === watch("password") || "Passwords do not match",
+                      {...register('confirmPassword', {
+                        required: 'Confirm your password',
+                        validate: (value) =>
+                          value === watch('password') ||
+                          'Passwords do not match',
                       })}
                       className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
                       placeholder="Re-enter password"
                     />
-                    {errors.confirmPassword && <span className="text-xs text-red-500">{errors.confirmPassword.message}</span>}
+                    {errors.confirmPassword && (
+                      <span className="text-xs text-red-500">
+                        {errors.confirmPassword.message}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -390,7 +478,7 @@ export default function SellerSignupPage() {
                     <label className="text-sm font-medium">Enter OTP</label>
                     <div className="flex items-center gap-4 mt-2">
                       <input
-                        {...register("otp")}
+                        {...register('otp')}
                         maxLength={6}
                         className="w-40 px-4 py-2 text-sm tracking-widest text-center bg-gray-100 border border-gray-300 rounded-md"
                         placeholder="6-digit code"
@@ -407,11 +495,17 @@ export default function SellerSignupPage() {
                             Resend OTP
                           </button>
                         ) : (
-                          <span className="text-gray-500">Resend in {timer}s</span>
+                          <span className="text-gray-500">
+                            Resend in {timer}s
+                          </span>
                         )}
                       </div>
                     </div>
-                    {errors.otp && <span className="text-xs text-red-500">{errors.otp.message}</span>}
+                    {errors.otp && (
+                      <span className="text-xs text-red-500">
+                        {errors.otp.message}
+                      </span>
+                    )}
                   </div>
                 )}
 
@@ -424,11 +518,11 @@ export default function SellerSignupPage() {
                   >
                     {!showOtp
                       ? isSendingOtp
-                        ? "Sending OTP..."
-                        : "Send OTP"
+                        ? 'Sending OTP...'
+                        : 'Send OTP'
                       : isVerifyingOtp
-                      ? "Verifying..."
-                      : "Verify & Continue"}
+                      ? 'Verifying...'
+                      : 'Verify & Continue'}
                   </button>
                 </div>
               </>
@@ -440,27 +534,39 @@ export default function SellerSignupPage() {
                   <div className="flex flex-col gap-2 md:col-span-2">
                     <label className="text-sm font-medium">Shop name</label>
                     <input
-                      {...register("shopName", { required: "Shop name is required" })}
+                      {...register('shopName', {
+                        required: 'Shop name is required',
+                      })}
                       className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
                       placeholder="Your shop name"
                     />
-                    {errors.shopName && <span className="text-xs text-red-500">{errors.shopName.message}</span>}
+                    {errors.shopName && (
+                      <span className="text-xs text-red-500">
+                        {errors.shopName.message}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-medium">Category</label>
                     <input
-                      {...register("category", { required: "Category is required" })}
+                      {...register('category', {
+                        required: 'Category is required',
+                      })}
                       className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
                       placeholder="Product category"
                     />
-                    {errors.category && <span className="text-xs text-red-500">{errors.category.message}</span>}
+                    {errors.category && (
+                      <span className="text-xs text-red-500">
+                        {errors.category.message}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-medium">Opening hours</label>
                     <input
-                      {...register("opening")}
+                      {...register('opening')}
                       className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
                       placeholder="e.g. Mon-Fri 9am-6pm"
                     />
@@ -469,7 +575,7 @@ export default function SellerSignupPage() {
                   <div className="flex flex-col gap-2 md:col-span-2">
                     <label className="text-sm font-medium">Shop bio</label>
                     <textarea
-                      {...register("bio")}
+                      {...register('bio')}
                       className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
                       placeholder="Tell customers about your shop"
                       rows={3}
@@ -479,17 +585,25 @@ export default function SellerSignupPage() {
                   <div className="flex flex-col gap-2 md:col-span-2">
                     <label className="text-sm font-medium">Address</label>
                     <input
-                      {...register("address", { required: "Address is required" })}
+                      {...register('address', {
+                        required: 'Address is required',
+                      })}
                       className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
                       placeholder="Shop address"
                     />
-                    {errors.address && <span className="text-xs text-red-500">{errors.address.message}</span>}
+                    {errors.address && (
+                      <span className="text-xs text-red-500">
+                        {errors.address.message}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex flex-col gap-2 md:col-span-2">
-                    <label className="text-sm font-medium">Website (optional)</label>
+                    <label className="text-sm font-medium">
+                      Website (optional)
+                    </label>
                     <input
-                      {...register("website")}
+                      {...register('website')}
                       className="px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md"
                       placeholder="https://your-shop.com"
                     />
@@ -497,7 +611,11 @@ export default function SellerSignupPage() {
                 </div>
 
                 <div className="flex items-center justify-between gap-3">
-                  <button type="button" onClick={() => setStep(1)} className="px-4 py-2 border rounded-md">
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="px-4 py-2 border rounded-md"
+                  >
                     Back
                   </button>
                   <button
@@ -505,7 +623,7 @@ export default function SellerSignupPage() {
                     className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-70"
                     disabled={isCreatingShop}
                   >
-                    {isCreatingShop ? "Creating shop..." : "Create shop"}
+                    {isCreatingShop ? 'Creating shop...' : 'Create shop'}
                   </button>
                 </div>
               </>
@@ -514,10 +632,13 @@ export default function SellerSignupPage() {
             {step === 3 && (
               <div className="flex flex-col items-center gap-6 py-10">
                 <div className="flex flex-col items-center gap-2 text-center">
-                  <span className="text-2xl font-semibold text-gray-900">Connect your payouts</span>
+                  <span className="text-2xl font-semibold text-gray-900">
+                    Connect your payouts
+                  </span>
                   <p className="max-w-md text-sm text-gray-500">
-                    Link your new seller account with Stripe to receive payments securely. You&apos;ll be redirected to
-                    Stripe&apos;s onboarding flow to finish the setup.
+                    Link your new seller account with Stripe to receive payments
+                    securely. You&apos;ll be redirected to Stripe&apos;s
+                    onboarding flow to finish the setup.
                   </p>
                 </div>
                 <button
@@ -526,13 +647,16 @@ export default function SellerSignupPage() {
                   className="flex items-center gap-3 px-6 py-3 text-sm font-medium text-white transition-transform bg-[#635BFF] rounded-lg shadow-sm hover:bg-[#4f46e5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#635BFF] disabled:opacity-70 disabled:pointer-events-none"
                   disabled={!sellerId || stripeConnectMutation.isPending}
                 >
-                  {stripeConnectMutation.isPending ? "Redirecting..." : "Connect Stripe"}
+                  {stripeConnectMutation.isPending
+                    ? 'Redirecting...'
+                    : 'Connect Stripe'}
                 </button>
                 {stripeError && (
                   <p className="text-sm text-red-500">{stripeError}</p>
                 )}
                 <p className="text-xs text-gray-400">
-                  Stripe connects securely with your shop. You can revisit this step anytime from your dashboard.
+                  Stripe connects securely with your shop. You can revisit this
+                  step anytime from your dashboard.
                 </p>
               </div>
             )}

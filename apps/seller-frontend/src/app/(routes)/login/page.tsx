@@ -168,7 +168,10 @@ const Page = () => {
 
             <div className="text-sm text-center">
               Don&apos;t have an account?{' '}
-              <Link href={'/signup'} className="text-blue-600 underline underline-offset-4">
+              <Link
+                href={'/signup'}
+                className="text-blue-600 underline underline-offset-4"
+              >
                 Sign up as a seller
               </Link>
             </div>

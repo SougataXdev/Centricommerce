@@ -1,9 +1,9 @@
-import { NextFunction, Request, Response } from 'express';
+import { Request, Response } from 'express';
 import prisma from '../../../../libs/prisma';
 import { sendOtp } from '../helpers/auth.helper';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
 import { z as zod } from 'zod';
+import { issueAuthTokens } from '../services/auth-tokens.service';
 
 const SALT_ROUNDS = 12;
 
@@ -130,39 +130,17 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const accessToken = jwt.sign(
-      { id: user.id, role: 'user' },
-      process.env.ACCESS_TOKEN_SECRET!,
-      {
-        expiresIn: '15m',
-      }
-    );
-
-    const refreshToken = jwt.sign(
-      { email: user.email, id: user.id, role: 'user' },
-      process.env.REFRESH_TOKEN_SECRET!,
-      { expiresIn: '7d' }
-    );
-
-    res.cookie('accessToken', accessToken, {
-      sameSite: 'strict',
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 15 * 60 * 1000,
-    });
-
-    res.cookie('refreshToken', refreshToken, {
-      sameSite: 'strict',
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+    const tokens = issueAuthTokens(res, {
+      id: user.id,
+      email: user.email,
+      role: 'user',
     });
 
     res.status(200).json({
       success: true,
       message: 'Login successful',
       user: { id: user.id, name: user.name, email: user.email },
-      accessToken, // optional for frontend
+      accessToken: tokens.accessToken,
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -278,79 +256,5 @@ export const forgetPassword = async (
     res
       .status(500)
       .json({ success: false, message: 'Failed to reset password' });
-  }
-};
-
-export const renewAccessToken = async (
-  req: Request,
-  res: Response,
-  _next: NextFunction
-) => {
-  try {
-    const refreshToken = req.cookies?.refreshToken as string | undefined;
-
-    if (!refreshToken) {
-      return res
-        .status(401)
-        .json({ success: false, message: 'Refresh token missing' });
-    }
-
-    let decoded: { id: string; role: string };
-    try {
-      decoded = jwt.verify(
-        refreshToken,
-        process.env.REFRESH_TOKEN_SECRET as string
-      ) as { id: string; role: string };
-    } catch (err) {
-      return res
-        .status(401)
-        .json({ success: false, message: 'Invalid or expired refresh token' });
-    }
-
-    if (!decoded || !decoded.id || !decoded.role) {
-      return res
-        .status(400)
-        .json({ success: false, message: 'Invalid token payload' });
-    }
-
-    let user: { id: string } | null = null;
-    if (decoded.role === 'user') {
-      user = await prisma.users.findUnique({
-        where: { id: decoded.id },
-        select: { id: true },
-      });
-    } else {
-      return res
-        .status(403)
-        .json({ success: false, message: 'Unsupported role' });
-    }
-
-    if (!user) {
-      return res
-        .status(401)
-        .json({ success: false, message: 'User not found' });
-    }
-
-    const accessToken = jwt.sign(
-      { id: decoded.id, role: decoded.role },
-      process.env.ACCESS_TOKEN_SECRET as string,
-      { expiresIn: '15m' }
-    );
-
-    res.cookie('accessToken', accessToken, {
-      sameSite: 'strict',
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 15 * 60 * 1000,
-    });
-
-    return res
-      .status(200)
-      .json({ success: true, message: 'Access token renewed successfully' });
-  } catch (error) {
-    console.error('renewAccessToken error:', error);
-    return res
-      .status(500)
-      .json({ success: false, message: 'Failed to renew access token' });
   }
 };

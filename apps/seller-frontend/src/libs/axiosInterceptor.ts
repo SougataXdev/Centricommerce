@@ -1,11 +1,15 @@
 import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 
+const baseURL = (
+  process.env.NEXT_PUBLIC_SELLER_API_URL ?? 'http://localhost:8080/api/seller'
+).replace(/\/$/, '');
+
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:8080/api',
+  baseURL,
   withCredentials: true, // always send cookies
 });
 
-const REFRESH_URL = '/renew-access-token-users';
+const REFRESH_URL = '/renew-access-token';
 
 let isRefreshing = false;
 type Subscriber = { resolve: () => void; reject: (err: unknown) => void };
@@ -73,11 +77,7 @@ axiosInstance.interceptors.response.use(
 
       try {
         // Use global axios (not axiosInstance) to avoid recursion
-        await axios.post(
-          `${axiosInstance.defaults.baseURL}${REFRESH_URL}`,
-          {},
-          { withCredentials: true }
-        );
+        await axios.post(`${baseURL}${REFRESH_URL}`, {}, { withCredentials: true });
 
         isRefreshing = false;
         onRefreshSuccess();
@@ -89,6 +89,10 @@ axiosInstance.interceptors.response.use(
         handleLogout();
         return Promise.reject(err);
       }
+    }
+
+    if (error.response.status === 403) {
+      handleLogout();
     }
 
     return Promise.reject(error);

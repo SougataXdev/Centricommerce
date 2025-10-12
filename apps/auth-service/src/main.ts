@@ -20,7 +20,7 @@ const port = process.env.PORT ? Number(process.env.PORT) : 6001;
 const app = express();
 
 app.use(cors({
-  origin: ['http://localhost:3000'],
+  origin: ['http://localhost:3000' , "http://localhost:3001"],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }));

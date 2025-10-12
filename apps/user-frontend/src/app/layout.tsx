@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import Navbar from './components/Navbar';
+import Navbar from '../components/Navbar';
 import { QueryClientProviderCmp } from '../providers/QueryclientProviderCmp';
 import './global.css';
 

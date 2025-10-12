@@ -1,6 +1,6 @@
 "use client";
 import { useQuery } from '@tanstack/react-query';
-import axiosInstance from '@/libs/axiosInterceptor';
+import axiosInstance from '../libs/axiosInterceptor';
 import { usePathname } from 'next/navigation';
 
 const useSeller = () => {
@@ -8,15 +8,20 @@ const useSeller = () => {
   const isAuthPage = pathname === '/login' || pathname === '/register';
 
   return useQuery({
-    queryKey: ['user'],
+    queryKey: ['seller'],
     queryFn: async () => {
       const res = await axiosInstance.get('/me');
-      return res.data;
+      return res.data?.seller ?? null;
     },
-    staleTime: 5 * 60 * 1000, 
-    retry: 1,               
-    refetchOnWindowFocus: false, 
-    enabled: !isAuthPage, 
+    staleTime: 5 * 60 * 1000,
+    retry: (failureCount, error) => {
+      if ((error as any)?.response?.status === 401) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    refetchOnWindowFocus: false,
+    enabled: !isAuthPage,
   });
 };
 

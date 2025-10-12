@@ -1,63 +1,76 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import prisma from '../../../../libs/prisma';
+import { AuthRole } from '../services/auth-tokens.service';
+import { findAccountByRole } from '../services/account.service';
 
 interface JwtPayload {
   id: string;
-  role: string;
+  role: AuthRole;
+  email?: string;
 }
 
-export const isAuthenticated = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const token =
-      req.cookies?.accessToken || req.headers.authorization?.split(' ')[1];
-      console.log("token is auth middleware " , token
-
-      )
-
-    if (!token) {
-      return res
-        .status(401)
-        .json({ success: false, message: 'Missing or invalid token' });
-    }
-
-    const decoded = jwt.verify(
-      token,
-      process.env.ACCESS_TOKEN_SECRET as string
-    ) as JwtPayload;
-
-    if (!decoded?.id) {
-      return res
-        .status(401)
-        .json({ success: false, message: 'Invalid token payload' });
-    }
-
-    const user = await prisma.users.findUnique({
-      where: { id: decoded.id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        usertype: true,
-      },
-    });
-    if (!user) {
-      return res
-        .status(401)
-        .json({ success: false, message: 'User does not exist' });
-    }
-
-    req.user = user as any;
-
-    return next();
-  } catch (error) {
-    console.error('Auth error:', error);
-    return res
-      .status(401)
-      .json({ success: false, message: 'Token expired or invalid' });
-  }
+type AuthOptions = {
+  roles?: AuthRole[];
 };
+
+const createAuthGuard = (options: AuthOptions = {}) =>
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+
+      console.log("header : " , req.headers);
+      const token =
+        req.cookies?.accessToken || req.headers.authorization?.split(' ')[1];
+        console.log("token" , token); 
+
+      if (!token) {
+        return res
+          .status(401)
+          .json({ success: false, message: 'Missing or invalid token' });
+      }
+
+      if (!process.env.ACCESS_TOKEN_SECRET) {
+        throw new Error('ACCESS_TOKEN_SECRET is not configured');
+      }
+
+      const decoded = jwt.verify(
+        token,
+        process.env.ACCESS_TOKEN_SECRET
+      ) as JwtPayload;
+
+      if (!decoded?.id || !decoded.role) {
+        return res
+          .status(401)
+          .json({ success: false, message: 'Invalid token payload' });
+      }
+
+      if (options.roles && !options.roles.includes(decoded.role)) {
+        return res
+          .status(403)
+          .json({ success: false, message: 'Insufficient permissions' });
+      }
+
+      const principal = await findAccountByRole(decoded.role, decoded.id);
+
+      if (!principal) {
+        return res
+          .status(401)
+          .json({ success: false, message: 'Account does not exist' });
+      }
+
+      req.user = {
+        ...principal,
+        role: decoded.role,
+      } as typeof req.user;
+
+      return next();
+    } catch (error) {
+      console.error('Auth error:', error);
+      return res
+        .status(401)
+        .json({ success: false, message: 'Token expired or invalid' });
+    }
+  };
+
+export const isAuthenticated = createAuthGuard();
+export const isSellerAuthenticated = createAuthGuard({ roles: ['seller'] });
+export const isUserAuthenticated = createAuthGuard({ roles: ['user'] });

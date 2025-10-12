@@ -8,8 +8,11 @@ import {
   createShop,
   createStripeConnectLink,
   loginSeller,
+  getSellerInfo,
   sendSellerSignUpOtp,
 } from '../controllers/seller.controller';
+import { renewAccessToken } from '../controllers/auth-token.controller';
+import { isSellerAuthenticated } from '../middlewares/isAuthenticated';
 
 
 const router = express.Router();
@@ -34,6 +37,7 @@ router.post(
 router.post('/createshop', createShop);
 router.post('/stripe/connect-link', createStripeConnectLink);
 router.post('/login', normalizeEmail, loginSeller);
-
+router.post('/renew-access-token', renewAccessToken);
+router.get('/me', isSellerAuthenticated, getSellerInfo);
 
 export default router;

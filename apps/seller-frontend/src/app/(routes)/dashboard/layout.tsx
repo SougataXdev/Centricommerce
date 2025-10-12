@@ -21,7 +21,11 @@ const navItems = [
   { label: 'Overview', icon: LayoutDashboard, href: '/dashboard' },
   { label: 'Orders', icon: ShoppingBag, href: '/dashboard/orders' },
   { label: 'Payments', icon: CreditCard, href: '/dashboard/payments' },
-  { label: 'Create Product', icon: PlusCircle, href: '/dashboard/products/new' },
+  {
+    label: 'Create Product',
+    icon: PlusCircle,
+    href: '/dashboard/products/new',
+  },
   { label: 'All Products', icon: Boxes, href: '/dashboard/products' },
   { label: 'Create Event', icon: CalendarPlus, href: '/dashboard/events/new' },
   { label: 'All Events', icon: CalendarCheck, href: '/dashboard/events' },

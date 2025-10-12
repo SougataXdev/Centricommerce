@@ -11,7 +11,6 @@ import {
   sendSignupOtp,
   forgotPasswordRequest,
   forgetPassword,
-  renewAccessToken,
   getUserInfo,
 } from '../controllers/user.controller';
 import {
@@ -19,7 +18,8 @@ import {
   otpRequestRecord,
 } from '../middlewares/otp-service/guards';
 import { normalizeEmail } from '../middlewares/normalize-email';
-import { isAuthenticated } from '../middlewares/isAuthenticated';
+import { isUserAuthenticated } from '../middlewares/isAuthenticated';
+import { renewAccessToken } from '../controllers/auth-token.controller';
 
 const router = express.Router();
 
@@ -36,9 +36,10 @@ router.post('/signup/verify', normalizeEmail, verifyOtp, createUser);
 
 router.post('/login', loginUser);
 
-router.post("/renew-access-token-users" , renewAccessToken);
+router.post('/renew-access-token-users', renewAccessToken);
+router.post('/renew-access-token', renewAccessToken);
 
-router.get('/me', isAuthenticated, getUserInfo);
+router.get('/me', isUserAuthenticated, getUserInfo);
 
 router.post(
   '/forgot-password/request',

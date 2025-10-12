@@ -3,12 +3,12 @@ import type { ValidatedData } from '../types/express';
 import prisma from '../../../../libs/prisma';
 import { sendOtp } from '../helpers/auth.helper';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
 import Stripe from 'stripe';
+import { issueAuthTokens } from '../services/auth-tokens.service';
 
 let stripeClient: Stripe | null = null;
 
-const SELLER_RETURN_PATH = '/signup?step=3&completed=true';
+const SELLER_RETURN_PATH = '/login';
 const SELLER_REFRESH_PATH = '/signup?step=3&refresh=true';
 
 const COUNTRY_LABEL_TO_CODE: Record<string, string> = {
@@ -215,7 +215,7 @@ export const loginSeller = async (req: Request, res: Response) => {
         message: 'Email and password are required',
       });
     }
-
+    
     const seller = await prisma.sellers.findUnique({
       where: { email },
       select: {
@@ -243,31 +243,12 @@ export const loginSeller = async (req: Request, res: Response) => {
         .json({ success: false, message: 'Invalid credentials' });
     }
 
-    const accessToken = jwt.sign(
-      { id: seller.id, role: 'seller' },
-      process.env.ACCESS_TOKEN_SECRET as string,
-      { expiresIn: '15m' }
-    );
-
-    const refreshToken = jwt.sign(
-      { id: seller.id, email: seller.email, role: 'seller' },
-      process.env.REFRESH_TOKEN_SECRET as string,
-      { expiresIn: '7d' }
-    );
-
-    res.cookie('accessToken', accessToken, {
-      sameSite: 'strict',
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 15 * 60 * 1000,
+    const tokens = issueAuthTokens(res, {
+      id: seller.id,
+      email: seller.email,
+      role: 'seller',
     });
 
-    res.cookie('refreshToken', refreshToken, {
-      sameSite: 'strict',
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
 
     const { password: _password, ...sellerData } = seller;
 
@@ -275,12 +256,46 @@ export const loginSeller = async (req: Request, res: Response) => {
       success: true,
       message: 'Login successful',
       seller: sellerData,
+      accessToken: tokens.accessToken,
     });
   } catch (error) {
     console.error('Seller login error:', error);
     return res
       .status(500)
       .json({ success: false, message: 'Internal server error' });
+  }
+};
+
+export const getSellerInfo = async (req: Request, res: Response) => {
+  try {
+    if (!req.user || req.user.role !== 'seller') {
+      return res
+        .status(401)
+        .json({ success: false, message: 'Unauthorized access' });
+    }
+
+    const seller = await prisma.sellers.findUnique({
+      where: { id: req.user.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phoneNumber: true,
+        country: true,
+        stripeId: true,
+      },
+    });
+
+    if (!seller) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Seller not found' });
+    }
+
+    return res.status(200).json({ success: true, seller });
+  } catch (error) {
+    console.error('getSellerInfo error:', error);
+    return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 

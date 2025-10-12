@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -21,8 +21,6 @@ const SignupPage = () => {
   const [timer, setTimer] = useState(60);
   const [userData, setUserData] = useState<FormData | null>(null);
   const [showOtp, setShowOtp] = useState(false);
-
-  const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const router = useRouter();
 
   const {
@@ -82,7 +80,7 @@ const SignupPage = () => {
 
         console.log('OTP verification response:', res.data);
 
-        if (res.status === 200) {
+        if (res.status === 201) {
           setShowOtp(false);
           router.push('/login');
         }

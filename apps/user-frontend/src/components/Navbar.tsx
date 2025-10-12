@@ -344,7 +344,7 @@ export default function Navbar() {
                 <a href="#">
                   <span className="sr-only">Your Company</span>
                   <Image
-                    src={require('../../assets/logo.png')}
+                    src={require('../assets/logo.png')}
                     alt="Your Company"
                     className="w-20 h-20"
                     priority
