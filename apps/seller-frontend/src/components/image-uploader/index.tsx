@@ -1,4 +1,5 @@
 import { Trash2, WandSparkles } from 'lucide-react';
+import Image from 'next/image';
 import React, { useState } from 'react';
 
 type Props = {
@@ -88,6 +89,18 @@ const ImageUploader = ({
           </div>
         </label>
       )}
+
+        {imagePreview && (  
+        <Image
+          src={imagePreview}
+          alt="Uploaded Image"
+          className="h-full w-full object-cover rounded-lg"
+          onClick={() => setImageOpenModel(true)}
+          width={200}
+          height={200}
+        />
+        )}  
+
     </div>
   );
 };
