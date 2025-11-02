@@ -372,9 +372,18 @@ const page = (props: Props) => {
               <select
                 {...register('subCategory', {
                   required: 'Sub-category is required',
+                  validate: (value) => {
+                    if (!selectedCategory) {
+                      return 'Please select a category first';
+                    }
+                    return true;
+                  },
                 })}
-                disabled={!selectedCategory}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                className={`w-full px-3 py-2 bg-white border rounded text-slate-900 focus:ring-2 focus:outline-none transition ${
+                  !selectedCategory
+                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200'
+                    : 'border-slate-300 focus:ring-blue-500 focus:border-blue-500'
+                }`}
               >
                 <option value="">Select Sub-Category</option>
                 {selectedCategory &&
