@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import router from './routes/products.routes';
 
 // Load service-specific .env first so it can override root-level values
 const serviceEnvPath = path.join(__dirname, '..', '.env');
@@ -29,8 +30,10 @@ app.use(cookieParser());
 
 
 app.get('/', (req, res) => {
-  res.send({ message: 'Hello from AUTH service' });
+  res.send({ message: 'Hello from product service' });
 });
+
+app.use('/api', router);
 
 
 const server = app.listen(port, host, () => {

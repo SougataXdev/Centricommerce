@@ -5,6 +5,8 @@ import CustomSpecifications from '@/components/custom-specifications';
 import { ChevronRight, ChevronDown } from 'lucide-react';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useQuery } from '@tanstack/react-query';
+import axiosInstance from '@/libs/axiosInterceptor';
 
 type Props = {};
 
@@ -15,6 +17,8 @@ interface ProductFormData {
   warranty: string;
   slug: string;
   brand: string;
+  category: string;
+  subCategory: string;
   colors: string[];
   images: (File | null)[];
   custom_specifications: Array<{ name: string; value: string }>;
@@ -34,6 +38,7 @@ const page = (props: Props) => {
     setValue,
     handleSubmit,
     formState: { errors },
+    watch,
   } = useForm<ProductFormData>({
     defaultValues: {
       productTitle: '',
@@ -42,6 +47,8 @@ const page = (props: Props) => {
       warranty: '',
       slug: '',
       brand: '',
+      category: '',
+      subCategory: '',
       colors: [],
       images: [],
       custom_specifications: [],
@@ -49,14 +56,34 @@ const page = (props: Props) => {
     },
   });
 
+  const {data , isLoading , isError} = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      try {
+        const res = await axiosInstance.get('/products/api/get-categories');
+        return res.data;
+        
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    },
+    staleTime: 5 * 60 * 1000, 
+    retry:2
+  });
+
+
+  const categories = data?.categories || [];
+  const subCategories = data?.subCategories || [];
+
+  const selectedCategory = watch('category');
+
+  console.log('Categories:', categories);
+  console.log('SubCategories:', subCategories);
+
+  // const regularPrice = watch('regular_price');
+
   const onsubmit = (data: ProductFormData) => {
     console.log('Form Data:', data);
-    // Here you can send the data to your backend API
-    // This will include:
-    // - productTitle, shortDescription, tags, warranty, slug, brand (strings)
-    // - colors (array of color hex codes)
-    // - images (array of File objects)
-    // - custom_specifications (array of {name, value} objects)
   };
 
   const handleImageChange = (file: File | null, index: number) => {
@@ -308,6 +335,63 @@ const page = (props: Props) => {
                 {errors.casn_on_delivery.message}
               </p>
             )}
+          </div>
+
+          {/* Category and Sub-Category */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Main Category */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-900 mb-2">
+                Category <span className="text-red-500">*</span>
+              </label>
+              <select
+                {...register('category', {
+                  required: 'Category is required',
+                })}
+                className="w-full px-3 py-2 bg-white border border-slate-300 rounded text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Select Category</option>
+                {categories?.map((category: string) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+              {errors.category && (
+                <p className="text-sm text-red-500 mt-1">
+                  {errors.category.message}
+                </p>
+              )}
+            </div>
+
+            {/* Sub-Category */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-900 mb-2">
+                Sub-Category <span className="text-red-500">*</span>
+              </label>
+              <select
+                {...register('subCategory', {
+                  required: 'Sub-category is required',
+                })}
+                disabled={!selectedCategory}
+                className="w-full px-3 py-2 bg-white border border-slate-300 rounded text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+              >
+                <option value="">Select Sub-Category</option>
+                {selectedCategory &&
+                  subCategories?.[selectedCategory as keyof typeof subCategories]?.map(
+                    (subCategory: string) => (
+                      <option key={subCategory} value={subCategory}>
+                        {subCategory}
+                      </option>
+                    )
+                  )}
+              </select>
+              {errors.subCategory && (
+                <p className="text-sm text-red-500 mt-1">
+                  {errors.subCategory.message}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>

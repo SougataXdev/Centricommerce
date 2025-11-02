@@ -49,14 +49,16 @@ app.get('/gateway', (req, res) => {
 });
 const SERVICE_URL = process.env.SERVICE_URL || 'http://localhost:6001';
 const PRODUCT_SERVICE_URL = process.env.PRODUCT_SERVICE_URL || 'http://localhost:6002';
-app.use('/', proxy(SERVICE_URL));
 
-app.use("/product" , proxy(PRODUCT_SERVICE_URL));
+// ⚠️ More specific routes must come FIRST before the catch-all '/'
+app.use("/products" , proxy(PRODUCT_SERVICE_URL));
+app.use('/', proxy(SERVICE_URL));
 
 const port = process.env.PORT || 8080;
 const server = app.listen(port, () => {
   console.log(`Listening at http://localhost:${port}/gateway`);
-  console.log(`Proxying requests to: ${SERVICE_URL}`);
+  console.log(`Proxying / requests to: ${SERVICE_URL}`);
+  console.log(`Proxying /products requests to: ${PRODUCT_SERVICE_URL}`);
   try {
     initializeConfig();
     console.log('Site config initialized successfully.');

@@ -1,7 +1,7 @@
 import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 
 const baseURL = (
-  process.env.NEXT_PUBLIC_SELLER_API_URL ?? 'http://localhost:8080/api/seller'
+  process.env.NEXT_PUBLIC_SELLER_API_URL ?? 'http://localhost:8080/'
 ).replace(/\/$/, '');
 
 const axiosInstance = axios.create({
@@ -9,7 +9,7 @@ const axiosInstance = axios.create({
   withCredentials: true, // always send cookies
 });
 
-const REFRESH_URL = '/renew-access-token';
+const REFRESH_URL = '/api/seller/renew-access-token';
 
 let isRefreshing = false;
 type Subscriber = { resolve: () => void; reject: (err: unknown) => void };

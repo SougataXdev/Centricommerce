@@ -7,5 +7,10 @@
     "tsBuildInfoFile": "dist/tsconfig.app.tsbuildinfo"
   },
   "include": ["src/**/*.ts"],
-  "exclude": []
+  "exclude": [],
+  "references": [
+    {
+      "path": "../auth-service/tsconfig.app.json"
+    }
+  ]
 }
