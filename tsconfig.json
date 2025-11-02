@@ -20,6 +20,9 @@
     },
     {
       "path": "./apps/seller-frontend"
+    },
+    {
+      "path": "./apps/product-service"
     }
   ]
 }

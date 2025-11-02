@@ -48,7 +48,10 @@ app.get('/gateway', (req, res) => {
   res.send({ message: 'Welcome to api-gateway!' });
 });
 const SERVICE_URL = process.env.SERVICE_URL || 'http://localhost:6001';
+const PRODUCT_SERVICE_URL = process.env.PRODUCT_SERVICE_URL || 'http://localhost:6002';
 app.use('/', proxy(SERVICE_URL));
+
+app.use("/product" , proxy(PRODUCT_SERVICE_URL));
 
 const port = process.env.PORT || 8080;
 const server = app.listen(port, () => {
