@@ -71,16 +71,18 @@ const ColorSelector = ({
     );
   };
 
-  // Add color function
+  // Add or toggle color function
   const addColorToList = useCallback(
     (color: string) => {
       const normalizedColor = normalizeColor(color);
 
-      // Check if already exists
+      // Check if already exists - toggle it off
       const colorExists = colors.includes(normalizedColor);
-      if (colorExists && !allowDuplicates) {
-        setInputError(`Color ${normalizedColor} is already selected`);
-        setTimeout(() => setInputError(''), 3000);
+      if (colorExists) {
+        const newColors = colors.filter((c) => c !== normalizedColor);
+        setColors(newColors);
+        setInputError('');
+        onColorsChange?.(newColors);
         return;
       }
 

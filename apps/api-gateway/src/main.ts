@@ -1,4 +1,3 @@
-
 import cors from 'cors';
 import express from 'express';
 import proxy from 'express-http-proxy';
@@ -6,6 +5,7 @@ import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { Request } from 'express';
+import initializeConfig from "./libs/siteConfig"
 
 declare global {
   namespace Express {
@@ -32,7 +32,7 @@ app.use(limiter);
 
 app.use(
   cors({
-    origin: ['http://localhost:3000' , "http://localhost:3001"],
+    origin: ['http://localhost:3000', 'http://localhost:3001'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   })
@@ -47,12 +47,18 @@ app.use(cookieParser());
 app.get('/gateway', (req, res) => {
   res.send({ message: 'Welcome to api-gateway!' });
 });
-const SERVICE_URL = process.env.SERVICE_URL || "http://localhost:6001";
-app.use("/", proxy(SERVICE_URL));
+const SERVICE_URL = process.env.SERVICE_URL || 'http://localhost:6001';
+app.use('/', proxy(SERVICE_URL));
 
 const port = process.env.PORT || 8080;
 const server = app.listen(port, () => {
   console.log(`Listening at http://localhost:${port}/gateway`);
   console.log(`Proxying requests to: ${SERVICE_URL}`);
+  try {
+    initializeConfig();
+    console.log('Site config initialized successfully.');
+  } catch (error) {
+    console.log('Error initializing site config:', error);
+  }
 });
 server.on('error', console.error);
