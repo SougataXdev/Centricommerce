@@ -31,8 +31,17 @@ const ImageUploader = ({
     }
   };
 
-  function onRemove(arg0: any): void {
-    throw new Error('Function not implemented.');
+  function onRemove(imageIndex: number): void {
+    if (!imagePreview) {
+      alert('A product must have at least one image');
+      return;
+    }
+    setImagePreview(null);
+    onRemoveImage(imageIndex);
+    const fileInput = document.getElementById(`image-upload-${imageIndex}`) as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
   }
 
   return (

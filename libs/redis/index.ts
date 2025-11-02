@@ -1,6 +1,7 @@
 import Redis, { RedisOptions } from "ioredis";
 
 const redisUrl = process.env.REDIS_URL;
+console.log(redisUrl)
 
 const options: RedisOptions = {
     lazyConnect: false,

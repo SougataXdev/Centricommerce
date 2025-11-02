@@ -38,6 +38,7 @@
   "include": [
     "../../apps/seller-frontend/.next/types/**/*.ts",
     "../../dist/apps/seller-frontend/.next/types/**/*.ts",
+    "../seller-frontend/src/components/**/*.tsx",
     "next-env.d.ts",
     "src/**/*.js",
     "src/**/*.jsx",
