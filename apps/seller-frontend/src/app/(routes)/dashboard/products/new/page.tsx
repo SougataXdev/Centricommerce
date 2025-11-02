@@ -131,21 +131,21 @@ const page = (props: Props) => {
 
   return (
     <form
-      className="w-full m-auto p-8 bg-white rounded-lg border border-slate-200 shadow-sm"
+      className="w-full m-auto p-4 sm:p-6 md:p-8 bg-white rounded-lg border border-slate-200 shadow-sm"
       onSubmit={handleSubmit(onsubmit)}
     >
-      <h2 className="text-2xl py-2 font-semibold font-Poppins text-slate-900">
+      <h2 className="text-xl sm:text-2xl py-2 font-semibold font-Poppins text-slate-900">
         Create Product
       </h2>
-      <div className="flex items-center text-sm text-slate-600">
+      <div className="flex items-center text-xs sm:text-sm text-slate-600">
         <span className="cursor-pointer">Dashboard</span>
-        <ChevronRight size={20} className="opacity-60 mx-1" />
+        <ChevronRight size={16} className="opacity-60 mx-1 sm:mx-2" />
         <span>Create Product</span>
       </div>
 
-      <div className="py-8 w-full flex gap-8">
+      <div className="py-6 sm:py-8 w-full flex flex-col lg:flex-row gap-6 lg:gap-8">
         {/* Left Side - Image Upload */}
-        <div className="w-[35%]">
+        <div className="w-full lg:w-[35%]">
           <ImageUploader
             setImageOpenModel={setOpenImageModel}
             size="765 x 850"
@@ -157,10 +157,10 @@ const page = (props: Props) => {
         </div>
 
         {/* Right Side - Form Fields */}
-        <div className="flex-1 space-y-6">
+        <div className="w-full lg:flex-1 space-y-4 sm:space-y-6">
           {/* Product Title */}
           <div>
-            <label className="block text-sm font-semibold text-slate-900 mb-2">
+            <label className="block text-xs sm:text-sm font-semibold text-slate-900 mb-2">
               Product Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -169,10 +169,10 @@ const page = (props: Props) => {
               {...register('productTitle', {
                 required: 'Product title is required',
               })}
-              className="w-full px-3 py-2 bg-white border border-slate-300 rounded text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 text-sm sm:text-base bg-white border border-slate-300 rounded text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             {errors.productTitle && (
-              <p className="text-sm text-red-500 mt-1">
+              <p className="text-xs sm:text-sm text-red-500 mt-1">
                 {errors.productTitle.message}
               </p>
             )}
@@ -180,7 +180,7 @@ const page = (props: Props) => {
 
           {/* Short Description */}
           <div>
-            <label className="block text-sm font-semibold text-slate-900 mb-2">
+            <label className="block text-xs sm:text-sm font-semibold text-slate-900 mb-2">
               Short Description <span className="text-red-500">*</span> (Max 150
               words)
             </label>
@@ -190,10 +190,10 @@ const page = (props: Props) => {
                 required: 'Short description is required',
                 maxLength: { value: 500, message: 'Max 500 characters' },
               })}
-              className="w-full px-3 py-2 bg-white border border-slate-300 rounded text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
+              className="w-full px-3 py-2 text-sm sm:text-base bg-white border border-slate-300 rounded text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
             />
             {errors.shortDescription && (
-              <p className="text-sm text-red-500 mt-1">
+              <p className="text-xs sm:text-sm text-red-500 mt-1">
                 {errors.shortDescription.message}
               </p>
             )}
@@ -201,33 +201,33 @@ const page = (props: Props) => {
 
           {/* Tags */}
           <div>
-            <label className="block text-sm font-semibold text-slate-900 mb-2">
+            <label className="block text-xs sm:text-sm font-semibold text-slate-900 mb-2">
               Tags <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               placeholder="apple,flagship"
               {...register('tags', { required: 'Tags are required' })}
-              className="w-full px-3 py-2 bg-white border border-slate-300 rounded text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 text-sm sm:text-base bg-white border border-slate-300 rounded text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             {errors.tags && (
-              <p className="text-sm text-red-500 mt-1">{errors.tags.message}</p>
+              <p className="text-xs sm:text-sm text-red-500 mt-1">{errors.tags.message}</p>
             )}
           </div>
 
           {/* Warranty */}
           <div>
-            <label className="block text-sm font-semibold text-slate-900 mb-2">
+            <label className="block text-xs sm:text-sm font-semibold text-slate-900 mb-2">
               Warranty <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               placeholder="1 Year / No Warranty"
               {...register('warranty', { required: 'Warranty is required' })}
-              className="w-full px-3 py-2 bg-white border border-slate-300 rounded text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 text-sm sm:text-base bg-white border border-slate-300 rounded text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             {errors.warranty && (
-              <p className="text-sm text-red-500 mt-1">
+              <p className="text-xs sm:text-sm text-red-500 mt-1">
                 {errors.warranty.message}
               </p>
             )}
@@ -235,7 +235,7 @@ const page = (props: Props) => {
 
           {/* Slug */}
           <div>
-            <label className="block text-sm font-semibold text-slate-900 mb-2">
+            <label className="block text-xs sm:text-sm font-semibold text-slate-900 mb-2">
               Slug <span className="text-red-500">*</span>
             </label>
             <input
@@ -251,14 +251,14 @@ const page = (props: Props) => {
                   setValue('slug', value);
                 },
               })}
-              className={`w-full px-3 py-2 bg-white border rounded text-slate-900 placeholder-slate-400 focus:ring-2 focus:outline-none transition ${
+              className={`w-full px-3 py-2 text-sm sm:text-base bg-white border rounded text-slate-900 placeholder-slate-400 focus:ring-2 focus:outline-none transition ${
                 errors.slug
                   ? 'border-red-500 focus:ring-red-200'
                   : 'border-slate-300 focus:ring-blue-500 focus:border-blue-500'
               }`}
             />
             {errors.slug && (
-              <p className="text-sm text-red-500 mt-1">{errors.slug.message}</p>
+              <p className="text-xs sm:text-sm text-red-500 mt-1">{errors.slug.message}</p>
             )}
             <p className="text-xs text-slate-500 mt-1">
               Only lowercase letters, numbers, and hyphens allowed
@@ -267,20 +267,20 @@ const page = (props: Props) => {
 
           {/* Brand */}
           <div>
-            <label className="block text-sm font-semibold text-slate-900 mb-2">
+            <label className="block text-xs sm:text-sm font-semibold text-slate-900 mb-2">
               Brand
             </label>
             <input
               type="text"
               placeholder="Apple"
               {...register('brand')}
-              className="w-full px-3 py-2 bg-white border border-slate-300 rounded text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 text-sm sm:text-base bg-white border border-slate-300 rounded text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
           {/* Colors */}
           <div>
-            <label className="block text-sm font-semibold text-slate-900 mb-3">
+            <label className="block text-xs sm:text-sm font-semibold text-slate-900 mb-3">
               Colors
             </label>
             <ColorSelector
@@ -296,11 +296,11 @@ const page = (props: Props) => {
             <button
               type="button"
               onClick={() => setShowSpecifications(!showSpecifications)}
-              className="w-full px-4 py-3 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition duration-200 font-semibold text-slate-900"
+              className="w-full px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition duration-200 font-semibold text-xs sm:text-sm text-slate-900"
             >
               <span>Custom Specifications</span>
               <ChevronDown
-                size={20}
+                size={16}
                 className={`transition-transform duration-300 ${
                   showSpecifications ? 'rotate-180' : ''
                 }`}
@@ -309,7 +309,7 @@ const page = (props: Props) => {
 
             {/* Dropdown Content */}
             {showSpecifications && (
-              <div className="p-4 bg-white border-t border-slate-300">
+              <div className="p-3 sm:p-4 bg-white border-t border-slate-300">
                 <CustomSpecifications control={control} errors={errors} />
               </div>
             )}
@@ -317,7 +317,7 @@ const page = (props: Props) => {
 
           {/* Cash on Delivery */}
           <div>
-            <label className="block text-sm font-semibold text-slate-900 mb-2">
+            <label className="block text-xs sm:text-sm font-semibold text-slate-900 mb-2">
               Cash on Delivery <span className="text-red-500">*</span>
             </label>
             <select
@@ -325,30 +325,30 @@ const page = (props: Props) => {
                 required: 'Cash on Delivery is required',
               })}
               defaultValue="yes"
-              className="w-full px-3 py-2 bg-white border border-slate-300 rounded text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 text-sm sm:text-base bg-white border border-slate-300 rounded text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="yes">Yes</option>
               <option value="no">No</option>
             </select>
             {errors.casn_on_delivery && (
-              <p className="text-sm text-red-500 mt-1">
+              <p className="text-xs sm:text-sm text-red-500 mt-1">
                 {errors.casn_on_delivery.message}
               </p>
             )}
           </div>
 
           {/* Category and Sub-Category */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Main Category */}
             <div>
-              <label className="block text-sm font-semibold text-slate-900 mb-2">
+              <label className="block text-xs sm:text-sm font-semibold text-slate-900 mb-2">
                 Category <span className="text-red-500">*</span>
               </label>
               <select
                 {...register('category', {
                   required: 'Category is required',
                 })}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 text-sm sm:text-base bg-white border border-slate-300 rounded text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Select Category</option>
                 {categories?.map((category: string) => (
@@ -358,7 +358,7 @@ const page = (props: Props) => {
                 ))}
               </select>
               {errors.category && (
-                <p className="text-sm text-red-500 mt-1">
+                <p className="text-xs sm:text-sm text-red-500 mt-1">
                   {errors.category.message}
                 </p>
               )}
@@ -366,7 +366,7 @@ const page = (props: Props) => {
 
             {/* Sub-Category */}
             <div>
-              <label className="block text-sm font-semibold text-slate-900 mb-2">
+              <label className="block text-xs sm:text-sm font-semibold text-slate-900 mb-2">
                 Sub-Category <span className="text-red-500">*</span>
               </label>
               <select
@@ -379,7 +379,7 @@ const page = (props: Props) => {
                     return true;
                   },
                 })}
-                className={`w-full px-3 py-2 bg-white border rounded text-slate-900 focus:ring-2 focus:outline-none transition ${
+                className={`w-full px-3 py-2 text-sm sm:text-base bg-white border rounded text-slate-900 focus:ring-2 focus:outline-none transition ${
                   !selectedCategory
                     ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200'
                     : 'border-slate-300 focus:ring-blue-500 focus:border-blue-500'
@@ -396,7 +396,7 @@ const page = (props: Props) => {
                   )}
               </select>
               {errors.subCategory && (
-                <p className="text-sm text-red-500 mt-1">
+                <p className="text-xs sm:text-sm text-red-500 mt-1">
                   {errors.subCategory.message}
                 </p>
               )}
@@ -406,10 +406,10 @@ const page = (props: Props) => {
       </div>
 
       {/* Submit Button */}
-      <div className="mt-8 flex justify-end">
+      <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
         <button
           type="submit"
-          className="px-6 py-2 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition"
+          className="w-full sm:w-auto px-4 sm:px-6 py-2 text-sm sm:text-base bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition"
         >
           Create Product
         </button>
