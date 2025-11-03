@@ -10,7 +10,7 @@ const useSeller = () => {
   const seller = useQuery({
     queryKey: ['seller'],
     queryFn: async () => {
-      const res = await axiosInstance.get('/me');
+      const res = await axiosInstance.get('/api/seller/me');
       return res.data?.seller ?? null;
     },
     staleTime: 5 * 60 * 1000,

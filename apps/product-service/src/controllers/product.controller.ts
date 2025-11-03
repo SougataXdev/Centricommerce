@@ -1,5 +1,23 @@
 import { Request, Response } from 'express';
-import prisma from '../../../auth-service/dist/libs/prisma/index';
+import prisma from '../../../../libs/prisma';
+
+type SellerPrincipal = {
+  id: string;
+  role?: string;
+};
+
+type SellerRequest = Request & {
+  user?: SellerPrincipal;
+};
+
+const parseOptionalDate = (value?: unknown) => {
+  if (!value) return undefined;
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) {
+    return undefined;
+  }
+  return date;
+};
 
 export const getCategories = async (req: Request, res: Response) => {
   const categories = await prisma.siteConfig.findFirst();
@@ -14,29 +32,95 @@ export const getCategories = async (req: Request, res: Response) => {
   });
 };
 
-export const createDiscountCode = async (req: Request, res: Response) => {
-  const { code, discountType, discountValue, sellerId, publicName } = req.body;
-
-  if (!code || !discountType || !discountValue || !sellerId || !publicName) {
-    return res.status(400).json({ message: 'All fields are required' });
+export const createDiscountCode = async (req: SellerRequest, res: Response) => {
+  const sellerId = req.user?.id;
+  if (!sellerId || req.user?.role !== 'seller') {
+    return res.status(403).json({ message: 'Seller authentication required' });
   }
 
-  const isAlreadyExists = await prisma.discountCodes.findUnique({
-    where: { code },
+  const {
+    code,
+    discountType,
+    discountValue,
+    publicName,
+    usageLimit,
+    startDate,
+    endDate,
+  } = req.body ?? {};
+
+  const normalizedCode = String(code ?? '').trim().toUpperCase();
+  const normalizedType = String(discountType ?? '').trim().toLowerCase();
+  const normalizedName = String(publicName ?? '').trim();
+  const numericDiscountValue = Number(discountValue);
+  const numericUsageLimit =
+    usageLimit === undefined || usageLimit === null || usageLimit === ''
+      ? null
+      : Number(usageLimit);
+  const parsedStartDate = parseOptionalDate(startDate);
+  const parsedEndDate = parseOptionalDate(endDate);
+
+  if (!normalizedCode || !normalizedType || !normalizedName) {
+    return res.status(400).json({ message: 'Code, name and type are required' });
+  }
+
+  if (!Number.isFinite(numericDiscountValue) || numericDiscountValue <= 0) {
+    return res.status(400).json({ message: 'Discount value must be greater than zero' });
+  }
+
+  if (normalizedType === 'percentage' && numericDiscountValue > 100) {
+    return res
+      .status(400)
+      .json({ message: 'Percentage discounts cannot exceed 100%' });
+  }
+
+  if (normalizedType !== 'percentage' && normalizedType !== 'fixed') {
+    return res.status(400).json({ message: 'Unsupported discount type' });
+  }
+
+  if (numericUsageLimit !== null) {
+    if (!Number.isInteger(numericUsageLimit) || numericUsageLimit < 0) {
+      return res
+        .status(400)
+        .json({ message: 'Usage limit must be a positive whole number' });
+    }
+  }
+
+  if (startDate && !parsedStartDate) {
+    return res.status(400).json({ message: 'Invalid start date' });
+  }
+
+  if (endDate && !parsedEndDate) {
+    return res.status(400).json({ message: 'Invalid end date' });
+  }
+
+  if (parsedStartDate && parsedEndDate && parsedEndDate < parsedStartDate) {
+    return res
+      .status(400)
+      .json({ message: 'End date must be after the start date' });
+  }
+
+  const existingCode = await prisma.discountCodes.findFirst({
+    where: {
+      code: normalizedCode,
+      sellerId,
+    },
   });
 
-  if (isAlreadyExists) {
+  if (existingCode) {
     return res.status(400).json({ message: 'Discount code already exists' });
   }
 
   try {
     const newDiscountCode = await prisma.discountCodes.create({
       data: {
-        code,
-        publicName,
-        discountType,
-        discountValue,
+        code: normalizedCode,
+        publicName: normalizedName,
+        discountType: normalizedType,
+        discountValue: numericDiscountValue,
         sellerId,
+        usageLimit: numericUsageLimit ?? undefined,
+        startDate: parsedStartDate ?? undefined,
+        endDate: parsedEndDate ?? undefined,
       },
     });
 
@@ -47,17 +131,20 @@ export const createDiscountCode = async (req: Request, res: Response) => {
   }
 };
 
-export const getDiscountCodes = async (req: any, res: Response) => {
-  const sellerId  = req.seller.id;
+export const getDiscountCodes = async (req: SellerRequest, res: Response) => {
+  const sellerId = req.user?.id;
 
   if (!sellerId) {
-    return res.status(400).json({ message: 'Seller ID is required' });
+    return res.status(403).json({ message: 'Seller authentication required' });
   }
 
   try {
     const discountCodes = await prisma.discountCodes.findMany({
       where: {
-        sellerId: String(sellerId),
+        sellerId,
+      },
+      orderBy: {
+        createdAt: 'desc',
       },
     });
 
@@ -68,35 +155,35 @@ export const getDiscountCodes = async (req: any, res: Response) => {
   }
 };
 
-export const deleteDiscountCode = async (req: any, res: Response) => {
+export const deleteDiscountCode = async (req: SellerRequest, res: Response) => {
   const { id } = req.params;
-  const sellerId = req.seller?.id;
+  const sellerId = req.user?.id;
 
   if (!sellerId) {
-    return res.status(400).json({ message: 'Seller ID is required' });
+    return res.status(403).json({ message: 'Seller authentication required' });
   }
 
   if (!id) {
     return res.status(400).json({ message: 'Discount code ID is required' });
   }
 
-  const discountCode = await prisma.discountCodes.findUnique({
-    where: { id },
-    select: {
-      sellerId: true,
-    },
-  });
-
-  if (!discountCode || discountCode.sellerId !== String(sellerId)) {
-    return res.status(404).json({ message: 'Discount code not found' });
-  }
-
   try {
-    const deletedDiscountCode = await prisma.discountCodes.delete({
+    const discountCode = await prisma.discountCodes.findUnique({
+      where: { id },
+      select: {
+        sellerId: true,
+      },
+    });
+
+    if (!discountCode || discountCode.sellerId !== sellerId) {
+      return res.status(404).json({ message: 'Discount code not found' });
+    }
+
+    await prisma.discountCodes.delete({
       where: { id },
     });
 
-    return res.status(200).json(deletedDiscountCode);
+    return res.status(204).send();
   } catch (error) {
     console.error('Error deleting discount code:', error);
     return res.status(500).json({ message: 'Internal server error' });

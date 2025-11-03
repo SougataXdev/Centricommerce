@@ -50,7 +50,6 @@ app.get('/gateway', (req, res) => {
 const SERVICE_URL = process.env.SERVICE_URL || 'http://localhost:6001';
 const PRODUCT_SERVICE_URL = process.env.PRODUCT_SERVICE_URL || 'http://localhost:6002';
 
-// ⚠️ More specific routes must come FIRST before the catch-all '/'
 app.use("/products" , proxy(PRODUCT_SERVICE_URL));
 app.use('/', proxy(SERVICE_URL));
 

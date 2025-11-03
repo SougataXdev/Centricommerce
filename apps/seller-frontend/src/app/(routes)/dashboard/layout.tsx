@@ -2,7 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState, type ComponentType } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentType,
+} from 'react';
 import {
   Bell,
   Boxes,
@@ -19,6 +25,7 @@ import {
   ShoppingBag,
   X,
 } from 'lucide-react';
+import useSeller from '@/hooks/useSeller';
 
 type NavItem = {
   label: string;
@@ -59,14 +66,13 @@ const navItems: NavItem[] = [
   { label: 'Inbox', icon: Inbox, href: '/dashboard/inbox' },
   { label: 'Settings', icon: Settings, href: '/dashboard/settings' },
   { label: 'Notifications', icon: Bell, href: '/dashboard/notifications' },
-  { label: 'Discount Codes', icon: Percent, href: '/dashboard/discounts' },
+  { label: 'Discount Codes', icon: Percent, href: '/dashboard/discount-codes' },
   { label: 'Logout', icon: LogOut, href: '/logout', exact: true },
 ];
 
-const sellerProfile = {
-  name: 'CentriMart Collective',
-  initials: 'CC',
-};
+// const sellerProfile = {
+//   name: seller.name || 'CentriMart Collective'
+// }
 
 const normalizePath = (path: string): string => {
   if (path === '/') return '/';
@@ -93,7 +99,11 @@ function isActiveRoute(pathname: string, item: NavItem) {
     return false;
   }
 
-  if (item.excludePaths?.some((excluded) => currentPath.startsWith(normalizePath(excluded)))) {
+  if (
+    item.excludePaths?.some((excluded) =>
+      currentPath.startsWith(normalizePath(excluded))
+    )
+  ) {
     return false;
   }
 
@@ -109,6 +119,24 @@ function SidebarContent({
   onNavigate?: () => void;
   showProfile?: boolean;
 }) {
+  const seller = useSeller();
+
+  if (!seller) {
+    throw new Error('Seller not found');
+  }
+
+  const sellerProfile = {
+    name: seller.data?.name || 'CentriMart Collective',
+    initials: seller.data?.name
+      ? seller.data.name
+          .split(' ')
+          .map((word:any) => word.charAt(0).toUpperCase())
+          .join('')
+      : 'CC',
+    image: seller.data?.profileImage || '/default-profile.png',
+    email: seller.data?.email,
+  };
+
   return (
     <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm backdrop-blur">
       {showProfile && (
@@ -160,12 +188,25 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const seller = useSeller();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const handleClose = useCallback(() => setMobileNavOpen(false), []);
   const toggleMobileNav = useCallback(
     () => setMobileNavOpen((prev) => !prev),
     []
   );
+
+  const sellerProfile = useMemo(() => ({
+    name: seller?.data?.name || 'CentriMart Collective',
+    initials: seller?.data?.name
+      ? seller.data.name
+          .split(' ')
+          .map((word: any) => word.charAt(0).toUpperCase())
+          .join('')
+      : 'CC',
+    image: seller?.data?.profileImage || '/default-profile.png',
+    email: seller?.data?.email,
+  }), [seller?.data?.name, seller?.data?.profileImage, seller?.data?.email]);
 
   useEffect(() => {
     if (mobileNavOpen) {
@@ -196,7 +237,9 @@ export default function DashboardLayout({
                   {sellerProfile.initials}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">Navigation</p>
+                  <p className="text-sm font-semibold text-slate-900">
+                    Navigation
+                  </p>
                   <p className="text-xs text-slate-500">Quick access</p>
                 </div>
               </div>
