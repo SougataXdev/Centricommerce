@@ -129,7 +129,20 @@ model ShopReviews {
 }
 
 model SiteConfig {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  categories String[]
-  subCategories Json 
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  categories    String[]
+  subCategories Json
 }
+
+model DiscountCodes {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  publicName String
+  code          String @unique
+  discountType  String
+  discountValue Float
+  sellerId      String @db.ObjectId
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime? @updatedAt
+}
+
+
