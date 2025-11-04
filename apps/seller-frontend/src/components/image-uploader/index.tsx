@@ -1,13 +1,15 @@
 import { Trash2, WandSparkles } from 'lucide-react';
 import Image from 'next/image';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { useImageUpload } from '@/hooks/useImageUpload';
 
 type Props = {
   size: string;
   small: boolean;
-  onImageChange: (file: File | null, index: number) => void;
-  onRemoveImage: (index: number) => void;
+  onImageChange: (file: File | null, uploadedData: { url: string; id: string } | null, index: number) => void;
+  onRemoveImage: (imageId: string, index: number) => void;
   defaultImage?: string | null;
+  defaultImageId?: string | null;
   setImageOpenModel: (openImgModel: boolean) => void;
   index?: any;
 };
@@ -18,31 +20,76 @@ const ImageUploader = ({
   onImageChange,
   onRemoveImage,
   defaultImage = null,
+  defaultImageId = null,
   index = null,
   setImageOpenModel,
 }: Props) => {
   const [imagePreview, setImagePreview] = useState<string | null>(defaultImage);
+  const [imageId, setImageId] = useState<string | null>(defaultImageId);
+  const objectUrlRef = useRef<string | null>(null);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImagePreview(URL.createObjectURL(file));
-      onImageChange(file, index!);
+
+  const { uploadImage, deleteImage } = useImageUpload();
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    const targetIndex = typeof index === 'number' ? index : 0;
+
+    if (!file) {
+      setImagePreview(null);
+      setImageId(null);
+      onImageChange(null, null, targetIndex);
+      return;
+    }
+
+    // Show local preview immediately
+    const localPreviewUrl = URL.createObjectURL(file);
+    objectUrlRef.current = localPreviewUrl;
+    setImagePreview(localPreviewUrl);
+
+    // Upload to ImageKit 
+    const uploadedData = await uploadImage(file);
+
+    if (uploadedData) {
+      setImagePreview(uploadedData.url); 
+      setImageId(uploadedData.id);      
+      onImageChange(file, uploadedData, targetIndex);
+    } else {
+      // Keep local preview if upload fails
+      onImageChange(file, null, targetIndex);
     }
   };
 
-  function onRemove(imageIndex: number): void {
+  const onRemove = async (imageIndex: number) => {
     if (!imagePreview) {
       alert('A product must have at least one image');
       return;
     }
+
+    // Delete from ImageKit if ID exists
+    if (imageId) {
+      const deleted = await deleteImage(imageId);
+      if (!deleted) {
+        alert('Failed to delete image from server');
+        return;
+      }
+    }
+
+    // Clean up
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+
     setImagePreview(null);
-    onRemoveImage(imageIndex);
+    setImageId(null);
+    onRemoveImage(imageId || '', imageIndex);
+
     const fileInput = document.getElementById(`image-upload-${imageIndex}`) as HTMLInputElement;
     if (fileInput) {
       fileInput.value = '';
     }
-  }
+  };
 
   return (
     <div

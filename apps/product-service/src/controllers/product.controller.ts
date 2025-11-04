@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../../../../libs/prisma';
+import { imagekit } from '../../../../libs/imagekit';
 
 type SellerPrincipal = {
   id: string;
@@ -48,8 +49,12 @@ export const createDiscountCode = async (req: SellerRequest, res: Response) => {
     endDate,
   } = req.body ?? {};
 
-  const normalizedCode = String(code ?? '').trim().toUpperCase();
-  const normalizedType = String(discountType ?? '').trim().toLowerCase();
+  const normalizedCode = String(code ?? '')
+    .trim()
+    .toUpperCase();
+  const normalizedType = String(discountType ?? '')
+    .trim()
+    .toLowerCase();
   const normalizedName = String(publicName ?? '').trim();
   const numericDiscountValue = Number(discountValue);
   const numericUsageLimit =
@@ -60,11 +65,15 @@ export const createDiscountCode = async (req: SellerRequest, res: Response) => {
   const parsedEndDate = parseOptionalDate(endDate);
 
   if (!normalizedCode || !normalizedType || !normalizedName) {
-    return res.status(400).json({ message: 'Code, name and type are required' });
+    return res
+      .status(400)
+      .json({ message: 'Code, name and type are required' });
   }
 
   if (!Number.isFinite(numericDiscountValue) || numericDiscountValue <= 0) {
-    return res.status(400).json({ message: 'Discount value must be greater than zero' });
+    return res
+      .status(400)
+      .json({ message: 'Discount value must be greater than zero' });
   }
 
   if (normalizedType === 'percentage' && numericDiscountValue > 100) {
@@ -189,3 +198,50 @@ export const deleteDiscountCode = async (req: SellerRequest, res: Response) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+
+
+export const uploadImageToImageKit = async ( req:Request , res :Response)=>{
+  try {
+    const { image } = req.body;
+    console.log("image in the contoller ",image);
+    
+    if (!image) {
+      return res.status(400).json({ message: 'No image provided' });
+    }
+
+    const fileName = `product_${Date.now()}`;
+
+    const response = await imagekit.upload({
+      file: image,
+      fileName: fileName,
+      folder: "/products/"
+    });
+
+    res.status(200).json({
+      url: response.url,
+      id: response.fileId
+    });
+  } catch (error) {
+    console.error('Image upload error:', error);
+    res.status(500).json({ message: 'Image upload failed', error });
+  }
+};
+
+
+export const deleteImageFromImageKit = async(req:Request , res:Response)=>{
+  try {
+    const { id } = req.params;
+
+    if(!id){
+      return res.status(400).json({message : 'No image ID provided'});
+    } 
+
+    await imagekit.deleteFile(id);
+
+    res.status(200).json({message : 'Image deleted successfully'});
+
+  } catch (error) {
+    res.status(500).json({message : 'Image deletion failed', error});
+  }
+}

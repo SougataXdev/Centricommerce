@@ -197,7 +197,11 @@ const ProductCreatePage = (props: Props) => {
     }
   };
 
-  const handleImageChange = (file: File | null, index: number) => {
+  const handleImageChange = (
+    file: File | null,
+    uploadedData: { url: string; id: string } | null,
+    index: number
+  ) => {
     setImages((prev) => {
       const updated = [...prev];
       updated[index] = file;
@@ -213,7 +217,7 @@ const ProductCreatePage = (props: Props) => {
     setIsChanged(true);
   };
 
-  const handleRemoveImage = (index: number) => {
+  const handleRemoveImage = (imageId: string, index: number) => {
     setImages((prev) => {
       let updated = [...prev];
 
@@ -686,14 +690,16 @@ const ProductCreatePage = (props: Props) => {
                     {isLoading
                       ? 'Loading discount codes…'
                       : discountFetchingError
-                        ? 'Unable to load discount codes'
-                        : 'Select discount codes'}
+                      ? 'Unable to load discount codes'
+                      : 'Select discount codes'}
                   </option>
-                  {discountCodeOptions.map((code: { id: string; code: string }) => (
-                    <option key={code.id} value={code.code}>
-                      {code.code}
-                    </option>
-                  ))}
+                  {discountCodeOptions.map(
+                    (code: { id: string; code: string }) => (
+                      <option key={code.id} value={code.code}>
+                        {code.code}
+                      </option>
+                    )
+                  )}
                 </select>
                 {discountFetchingError && (
                   <p className="mt-1 text-xs text-red-500">
