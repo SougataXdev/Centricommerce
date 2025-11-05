@@ -6,7 +6,11 @@ import ColorSelector from '@/components/color-selector';
 import SizeSelector from '@/components/size-selector';
 import CustomSpecifications from '@/components/custom-specifications';
 import axiosInstance from '@/libs/axiosInterceptor';
-import { validateSlug, validateVideoUrl, validatePrice, validateStock } from '@/utils/validators';
+import {
+  validateSlug,
+  validateVideoUrl,
+  validatePrice,
+} from '@/utils/validators';
 import { useQuery } from '@tanstack/react-query';
 import {
   ChevronRight,
@@ -30,7 +34,7 @@ interface ProductFormData {
   colors: string[];
   images: (File | null)[];
   custom_specifications: Array<{ name: string; value: string }>;
-  casn_on_delivery: string;
+  cashOnDelivery: string;
   videoUrl: string;
   regularPrice: string;
   salePrice: string;
@@ -53,7 +57,7 @@ const createDefaultValues = (): ProductFormData => ({
   colors: [],
   images: [],
   custom_specifications: [],
-  casn_on_delivery: 'yes',
+  cashOnDelivery: 'yes',
   videoUrl: '',
   regularPrice: '',
   salePrice: '',
@@ -64,9 +68,12 @@ const createDefaultValues = (): ProductFormData => ({
 
 const ProductCreatePage = () => {
   const [modalImageUrl, setModalImageUrl] = useState<string | null>(null);
-  const [enhancedImages, setEnhancedImages] = useState<Record<number, string>>({});
+  const [enhancedImages, setEnhancedImages] = useState<Record<number, string>>(
+    {}
+  );
   const [isChanged, setIsChanged] = useState(false);
   const [images, setImages] = useState<Array<File | null>>([null]);
+  const [uploadedImageData, setUploadedImageData] = useState<Array<{ fileId: string; file_url: string } | null>>([null]);
   const [loading, setLoading] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [showSpecifications, setShowSpecifications] = useState<boolean>(false);
@@ -96,7 +103,7 @@ const ProductCreatePage = () => {
     queryKey: ['discountCodes'],
     queryFn: async () => {
       try {
-        const res = await axiosInstance.get('/products/api/get-discountcodes');
+  const res = await axiosInstance.get('/products/api/discountcodes');
         return res.data;
       } catch (error) {
         console.error('Error fetching discount codes:', error);
@@ -192,7 +199,58 @@ const ProductCreatePage = () => {
   const onsubmit = async (formData: ProductFormData) => {
     try {
       setLoading(true);
-      console.log('Form Data:', formData);
+      
+      const images = uploadedImageData
+        .filter((img) => img !== null && img.file_url)
+        .map((img) => ({
+          fileId: img!.fileId,
+          file_url: img!.file_url,
+        }));
+
+      const transformedData = {
+        productTitle: formData.productTitle,
+        shortDescription: formData.shortDescription,
+        tags: formData.tags,
+        warranty: formData.warranty,
+        slug: formData.slug,
+        brand: formData.brand,
+        category: formData.category,
+        subCategory: formData.subCategory,
+        colors: formData.colors,
+        images: images, 
+        custom_specifications: formData.custom_specifications,
+        cashOnDelivery: formData.cashOnDelivery === 'yes', 
+        videoUrl: formData.videoUrl || '', 
+        regularPrice: Number(formData.regularPrice),
+        salePrice: Number(formData.salePrice),
+        stock: Number(formData.stock),
+        sizes: formData.sizes,
+        discountCode: formData.discountCodes || undefined, 
+        primaryImage: enhancedImages[0] || undefined, 
+      };
+
+      const res = await axiosInstance.post('/products/api/create-product', transformedData);
+      console.log('Create product response:', res);
+      
+      // Success handling
+      if (res.data.success) {
+        // Reset form
+        reset(createDefaultValues());
+        setImages([null]);
+        setUploadedImageData([null]);
+        setEnhancedImages({});
+        setIsChanged(false);
+        
+        if (typeof window !== 'undefined') {
+          window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+        }
+        
+        alert('Product created successfully!');
+      }
+    } catch (error: any) {
+      console.error('Error creating product:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to create product';
+      alert(`Error: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -202,15 +260,15 @@ const ProductCreatePage = () => {
     url: string;
     id: string;
   };
-  
+
   const handleImageChange = (
-      file: File | null,
-      _uploadedData: UploadedImageData | null,
-      index: number
-    ) => {
-      setImages((prev) => {
-        const updated = [...prev];
-        updated[index] = file;
+    file: File | null,
+    uploadedData: UploadedImageData | null,
+    index: number
+  ) => {
+    setImages((prev) => {
+      const updated = [...prev];
+      updated[index] = file;
 
       const hasEmptySlot = updated.some((image) => image === null);
       if (!hasEmptySlot && updated.length < 8) {
@@ -220,6 +278,20 @@ const ProductCreatePage = () => {
       setValue('images', updated);
       return updated;
     });
+
+    setUploadedImageData((prev) => {
+      const updated = [...prev];
+      if (uploadedData) {
+        updated[index] = {
+          fileId: uploadedData.id,
+          file_url: uploadedData.url,
+        };
+      } else {
+        updated[index] = null;
+      }
+      return updated;
+    });
+
     setIsChanged(true);
   };
 
@@ -242,6 +314,19 @@ const ProductCreatePage = () => {
       }
 
       setValue('images', updated);
+      return updated;
+    });
+
+    setUploadedImageData((prev) => {
+      let updated = [...prev];
+      if (index === -1) {
+        updated[0] = null;
+      } else {
+        updated.splice(index, 1);
+      }
+      if (!updated.length) {
+        updated = [null];
+      }
       return updated;
     });
     setIsChanged(true);
@@ -624,7 +709,7 @@ const ProductCreatePage = () => {
                   Cash on Delivery <span className="text-red-500">*</span>
                 </label>
                 <select
-                  {...register('casn_on_delivery', {
+                  {...register('cashOnDelivery', {
                     required: 'Cash on Delivery is required',
                   })}
                   defaultValue="yes"
@@ -636,9 +721,9 @@ const ProductCreatePage = () => {
                 <p className="mt-1 text-xs text-slate-500">
                   Communicate fulfilment options transparently.
                 </p>
-                {errors.casn_on_delivery && (
+                {errors.cashOnDelivery && (
                   <p className="mt-1 text-xs text-red-500">
-                    {errors.casn_on_delivery.message}
+                    {errors.cashOnDelivery.message}
                   </p>
                 )}
               </div>
@@ -961,10 +1046,9 @@ const ProductCreatePage = () => {
           imageUrl={modalImageUrl}
           onClose={() => setModalImageUrl(null)}
           onApply={(enhancedUrl) => {
-            // Find which image was enhanced (for now always 0)
-            setEnhancedImages(prev => ({
+            setEnhancedImages((prev) => ({
               ...prev,
-              0: enhancedUrl
+              0: enhancedUrl,
             }));
             setModalImageUrl(null);
           }}

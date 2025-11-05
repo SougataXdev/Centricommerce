@@ -107,6 +107,9 @@ model Shops {
   // Reviews (1:N)
   reviews ShopReviews[] @relation("ShopReviews")
 
+  // Products (1:N) - Products created by this shop
+  products Products[] @relation("ShopProducts")
+
   // Seller (1:1) → Required side (holds foreign key)
   sellerId String  @unique @db.ObjectId
   seller   Sellers @relation("SellerShop", fields: [sellerId], references: [id])
@@ -135,20 +138,72 @@ model SiteConfig {
 }
 
 model DiscountCodes {
-  id            String @id @default(auto()) @map("_id") @db.ObjectId
-  publicName   String
-  code          String @unique
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  publicName    String
+  code          String
   discountType  String
   discountValue Float
-  sellerId      String @db.ObjectId
+  sellerId      String    @db.ObjectId
   usageLimit    Int?
-  usedCount     Int      @default(0)
+  usedCount     Int       @default(0)
   startDate     DateTime?
   endDate       DateTime?
-  isActive      Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime? @updatedAt
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime? @updatedAt
+
+  @@unique([code, sellerId])
 }
 
+model Products {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
 
+  productTitle     String
+  shortDescription String
+  tags             String[]
+  warranty         String?
+  brand            String?
+  slug             String   @unique
+  videoUrl         String?
 
+  images       Json
+  primaryImage String?
+
+  category    String
+  subCategory String
+
+  regularPrice   Float
+  salePrice      Float
+  stock          Int
+  cashOnDelivery Boolean @default(true)
+
+  sizes  String[]
+  colors Json[]
+
+  custom_specifications Json?
+
+  discountCodes String[]
+
+  rating       Float @default(0)
+  totalReviews Int   @default(0)
+
+  isDeleted Boolean @default(false)
+  status    String  @default("active")
+
+  sellerId String @db.ObjectId
+  shopId   String @db.ObjectId
+  shop     Shops  @relation("ShopProducts", fields: [shopId], references: [id])
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  publishedAt DateTime?
+
+  @@index([sellerId])
+  @@index([category])
+}
+
+enum status {
+  active
+  pending
+  draft
+}

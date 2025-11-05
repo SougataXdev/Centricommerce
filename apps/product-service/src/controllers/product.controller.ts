@@ -1,6 +1,12 @@
+import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
-import prisma from '../../../../libs/prisma';
+import { z } from 'zod';
+import prisma from '../../../../libs/prisma/index';
 import { imagekit } from '../../../../libs/imagekit';
+import {
+  CreateDiscountCodeSchema,
+  CreateProductSchema,
+} from '../schemas/product.schema';
 
 type SellerPrincipal = {
   id: string;
@@ -9,15 +15,6 @@ type SellerPrincipal = {
 
 type SellerRequest = Request & {
   user?: SellerPrincipal;
-};
-
-const parseOptionalDate = (value?: unknown) => {
-  if (!value) return undefined;
-  const date = new Date(String(value));
-  if (Number.isNaN(date.getTime())) {
-    return undefined;
-  }
-  return date;
 };
 
 export const getCategories = async (req: Request, res: Response) => {
@@ -39,102 +36,44 @@ export const createDiscountCode = async (req: SellerRequest, res: Response) => {
     return res.status(403).json({ message: 'Seller authentication required' });
   }
 
-  const {
-    code,
-    discountType,
-    discountValue,
-    publicName,
-    usageLimit,
-    startDate,
-    endDate,
-  } = req.body ?? {};
-
-  const normalizedCode = String(code ?? '')
-    .trim()
-    .toUpperCase();
-  const normalizedType = String(discountType ?? '')
-    .trim()
-    .toLowerCase();
-  const normalizedName = String(publicName ?? '').trim();
-  const numericDiscountValue = Number(discountValue);
-  const numericUsageLimit =
-    usageLimit === undefined || usageLimit === null || usageLimit === ''
-      ? null
-      : Number(usageLimit);
-  const parsedStartDate = parseOptionalDate(startDate);
-  const parsedEndDate = parseOptionalDate(endDate);
-
-  if (!normalizedCode || !normalizedType || !normalizedName) {
-    return res
-      .status(400)
-      .json({ message: 'Code, name and type are required' });
-  }
-
-  if (!Number.isFinite(numericDiscountValue) || numericDiscountValue <= 0) {
-    return res
-      .status(400)
-      .json({ message: 'Discount value must be greater than zero' });
-  }
-
-  if (normalizedType === 'percentage' && numericDiscountValue > 100) {
-    return res
-      .status(400)
-      .json({ message: 'Percentage discounts cannot exceed 100%' });
-  }
-
-  if (normalizedType !== 'percentage' && normalizedType !== 'fixed') {
-    return res.status(400).json({ message: 'Unsupported discount type' });
-  }
-
-  if (numericUsageLimit !== null) {
-    if (!Number.isInteger(numericUsageLimit) || numericUsageLimit < 0) {
-      return res
-        .status(400)
-        .json({ message: 'Usage limit must be a positive whole number' });
-    }
-  }
-
-  if (startDate && !parsedStartDate) {
-    return res.status(400).json({ message: 'Invalid start date' });
-  }
-
-  if (endDate && !parsedEndDate) {
-    return res.status(400).json({ message: 'Invalid end date' });
-  }
-
-  if (parsedStartDate && parsedEndDate && parsedEndDate < parsedStartDate) {
-    return res
-      .status(400)
-      .json({ message: 'End date must be after the start date' });
-  }
-
-  const existingCode = await prisma.discountCodes.findFirst({
-    where: {
-      code: normalizedCode,
-      sellerId,
-    },
-  });
-
-  if (existingCode) {
-    return res.status(400).json({ message: 'Discount code already exists' });
-  }
-
   try {
+    const validatedData = CreateDiscountCodeSchema.parse(req.body ?? {});
+
+    const existingCode = await prisma.discountCodes.findFirst({
+      where: {
+        code: validatedData.code,
+        sellerId,
+      },
+    });
+
+    if (existingCode) {
+      return res.status(400).json({ message: 'Discount code already exists' });
+    }
+
     const newDiscountCode = await prisma.discountCodes.create({
       data: {
-        code: normalizedCode,
-        publicName: normalizedName,
-        discountType: normalizedType,
-        discountValue: numericDiscountValue,
+        code: validatedData.code,
+        publicName: validatedData.publicName,
+        discountType: validatedData.discountType,
+        discountValue: validatedData.discountValue,
         sellerId,
-        usageLimit: numericUsageLimit ?? undefined,
-        startDate: parsedStartDate ?? undefined,
-        endDate: parsedEndDate ?? undefined,
+        usageLimit: validatedData.usageLimit ?? undefined,
+        startDate: validatedData.startDate,
+        endDate: validatedData.endDate,
       },
     });
 
     return res.status(201).json(newDiscountCode);
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      const fieldErrors = error.issues.map((issue: z.ZodIssue) => ({
+        field: issue.path.join('.'),
+        message: issue.message,
+      }));
+      return res
+        .status(400)
+        .json({ message: 'Validation error', errors: fieldErrors });
+    }
     console.error('Error creating discount code:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
@@ -199,13 +138,13 @@ export const deleteDiscountCode = async (req: SellerRequest, res: Response) => {
   }
 };
 
-
-
-export const uploadImageToImageKit = async ( req:Request , res :Response)=>{
+export const uploadImageToImageKit = async (
+  req: Request,
+  res: Response
+): Promise<any> => {
   try {
     const { image } = req.body;
-    console.log("image in the contoller ",image);
-    
+
     if (!image) {
       return res.status(400).json({ message: 'No image provided' });
     }
@@ -215,33 +154,163 @@ export const uploadImageToImageKit = async ( req:Request , res :Response)=>{
     const response = await imagekit.upload({
       file: image,
       fileName: fileName,
-      folder: "/products/"
+      folder: '/products/',
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       url: response.url,
-      id: response.fileId
+      id: response.fileId,
     });
   } catch (error) {
     console.error('Image upload error:', error);
-    res.status(500).json({ message: 'Image upload failed', error });
+    return res.status(500).json({ message: 'Image upload failed', error });
   }
 };
 
-
-export const deleteImageFromImageKit = async(req:Request , res:Response)=>{
+export const deleteImageFromImageKit = async (
+  req: Request,
+  res: Response
+): Promise<any> => {
   try {
     const { id } = req.params;
 
-    if(!id){
-      return res.status(400).json({message : 'No image ID provided'});
-    } 
+    if (!id) {
+      return res.status(400).json({ message: 'No image ID provided' });
+    }
 
     await imagekit.deleteFile(id);
 
-    res.status(200).json({message : 'Image deleted successfully'});
-
+    return res.status(200).json({ message: 'Image deleted successfully' });
   } catch (error) {
-    res.status(500).json({message : 'Image deletion failed', error});
+    return res.status(500).json({ message: 'Image deletion failed', error });
   }
-}
+};
+
+export const createProduct = async (req: SellerRequest, res: Response) => {
+  const sellerId = req.user?.id;
+
+  if (!sellerId || req.user?.role !== 'seller') {
+    return res.status(403).json({ message: 'Seller authentication required' });
+  }
+
+  try {
+    // Validate request body with Zod
+    const validatedData = CreateProductSchema.parse(req.body ?? {});
+
+    const requestedDiscountCodes = Array.from(
+      new Set(validatedData.discountCode ?? [])
+    );
+
+    let verifiedDiscountCodes: string[] = [];
+
+    if (requestedDiscountCodes.length > 0) {
+      const discountCodes = await prisma.discountCodes.findMany({
+        where: {
+          sellerId,
+          code: {
+            in: requestedDiscountCodes,
+          },
+        },
+        select: {
+          code: true,
+        },
+      });
+
+      const foundCodes = new Set(discountCodes.map((code) => code.code));
+      const missingCodes = requestedDiscountCodes.filter(
+        (code) => !foundCodes.has(code)
+      );
+
+      if (missingCodes.length > 0) {
+        return res.status(400).json({
+          message: 'One or more selected discount codes are invalid',
+          invalidCodes: missingCodes,
+        });
+      }
+
+      verifiedDiscountCodes = [...foundCodes];
+    }
+
+    const productImages = validatedData.images ?? [];
+    const productImagesJson: Prisma.InputJsonValue = productImages;
+    const customSpecificationsJson: Prisma.InputJsonValue =
+      validatedData.custom_specifications ?? [];
+    const derivedPrimaryImage =
+      validatedData.primaryImage?.trim() || productImages[0]?.file_url || null;
+
+    // Check for duplicate slug
+    const existingProduct = await prisma.products.findUnique({
+      where: { slug: validatedData.slug },
+    });
+
+    if (existingProduct) {
+      return res.status(400).json({ message: 'Slug must be unique' });
+    }
+
+    const shop = await prisma.shops.findUnique({
+      where: { sellerId },
+    });
+
+    if (!shop) {
+      return res.status(404).json({ message: 'Seller shop not found' });
+    }
+
+    const newProduct = await prisma.products.create({
+      data: {
+        productTitle: validatedData.productTitle,
+        shortDescription: validatedData.shortDescription,
+        tags: validatedData.tags,
+        warranty: validatedData.warranty,
+        brand: validatedData.brand,
+        slug: validatedData.slug,
+        videoUrl: validatedData.videoUrl || undefined,
+        category: validatedData.category,
+        subCategory: validatedData.subCategory,
+        regularPrice: validatedData.regularPrice,
+        salePrice: validatedData.salePrice,
+        stock: validatedData.stock,
+        cashOnDelivery: validatedData.cashOnDelivery,
+        sizes: validatedData.sizes,
+        colors: validatedData.colors,
+        custom_specifications: customSpecificationsJson,
+        images: productImagesJson,
+        primaryImage: derivedPrimaryImage ?? undefined,
+        discountCodes: verifiedDiscountCodes,
+        status: validatedData.status,
+        rating: 0,
+        totalReviews: 0,
+        isDeleted: false,
+        sellerId,
+        shopId: shop.id,
+      },
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Product created successfully',
+      product: newProduct,
+    });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      const fieldErrors = error.issues.map((issue) => ({
+        field: issue.path.join('.'),
+        message: issue.message,
+      }));
+      console.error('Validation errors:', fieldErrors);
+      console.error('Raw body:', req.body);
+
+      return res
+        .status(400)
+        .json({ message: 'Validation error', errors: fieldErrors });
+    }
+    console.error('Error creating product:', {
+      message: error?.message,
+      code: error?.code,
+      details: error?.meta,
+    });
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: error?.message || 'Unknown error',
+    });
+  }
+};
