@@ -1,10 +1,12 @@
 'use client';
 
 import ImageUploader from '@/components/image-uploader';
+import ImageEnhancementModal from '@/components/AI-Model';
 import ColorSelector from '@/components/color-selector';
 import SizeSelector from '@/components/size-selector';
 import CustomSpecifications from '@/components/custom-specifications';
 import axiosInstance from '@/libs/axiosInterceptor';
+import { validateSlug, validateVideoUrl, validatePrice, validateStock } from '@/utils/validators';
 import { useQuery } from '@tanstack/react-query';
 import {
   ChevronRight,
@@ -15,8 +17,6 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-
-type Props = {};
 
 interface ProductFormData {
   productTitle: string;
@@ -62,8 +62,9 @@ const createDefaultValues = (): ProductFormData => ({
   discountCodes: '',
 });
 
-const ProductCreatePage = (props: Props) => {
-  const [, setOpenImageModel] = useState(false);
+const ProductCreatePage = () => {
+  const [modalImageUrl, setModalImageUrl] = useState<string | null>(null);
+  const [enhancedImages, setEnhancedImages] = useState<Record<number, string>>({});
   const [isChanged, setIsChanged] = useState(false);
   const [images, setImages] = useState<Array<File | null>>([null]);
   const [loading, setLoading] = useState(false);
@@ -197,14 +198,19 @@ const ProductCreatePage = (props: Props) => {
     }
   };
 
+  type UploadedImageData = {
+    url: string;
+    id: string;
+  };
+  
   const handleImageChange = (
-    file: File | null,
-    uploadedData: { url: string; id: string } | null,
-    index: number
-  ) => {
-    setImages((prev) => {
-      const updated = [...prev];
-      updated[index] = file;
+      file: File | null,
+      _uploadedData: UploadedImageData | null,
+      index: number
+    ) => {
+      setImages((prev) => {
+        const updated = [...prev];
+        updated[index] = file;
 
       const hasEmptySlot = updated.some((image) => image === null);
       if (!hasEmptySlot && updated.length < 8) {
@@ -281,46 +287,6 @@ const ProductCreatePage = (props: Props) => {
     } finally {
       setSavingDraft(false);
     }
-  };
-
-  // Slug validation function
-  const validateSlug = (value: string): string | true => {
-    if (!value) {
-      return 'Slug is required';
-    }
-    if (value.length > 50) {
-      return 'Slug must be max 50 characters';
-    }
-    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)) {
-      return 'Slug can only contain lowercase letters, numbers, and hyphens';
-    }
-    return true;
-  };
-
-  // Video URL validation function
-  const validateVideoUrl = (value: string): string | true => {
-    if (!value) {
-      return true; // Video URL is optional
-    }
-
-    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
-    const vimeoRegex = /^(https?:\/\/)?(www\.)?vimeo\.com\/.+/;
-
-    if (!youtubeRegex.test(value) && !vimeoRegex.test(value)) {
-      return 'Please enter a valid YouTube or Vimeo URL';
-    }
-    return true;
-  };
-
-  // Price validation function
-  const validatePrice = (value: string): string | true => {
-    if (!value) {
-      return 'Price is required';
-    }
-    if (isNaN(parseFloat(value)) || parseFloat(value) < 0) {
-      return 'Price must be a valid positive number';
-    }
-    return true;
   };
 
   // Stock validation function
@@ -916,12 +882,13 @@ const ProductCreatePage = (props: Props) => {
 
             <div className="mt-6 flex flex-wrap gap-4">
               <ImageUploader
-                setImageOpenModel={setOpenImageModel}
                 size="765 x 850"
                 small={false}
                 index={0}
                 onImageChange={handleImageChange}
                 onRemoveImage={handleRemoveImage}
+                onEnhanceImage={setModalImageUrl}
+                enhancedImageUrl={enhancedImages[0]}
               />
             </div>
           </div>
@@ -988,6 +955,21 @@ const ProductCreatePage = (props: Props) => {
           </div>
         </aside>
       </form>
+
+      {modalImageUrl && (
+        <ImageEnhancementModal
+          imageUrl={modalImageUrl}
+          onClose={() => setModalImageUrl(null)}
+          onApply={(enhancedUrl) => {
+            // Find which image was enhanced (for now always 0)
+            setEnhancedImages(prev => ({
+              ...prev,
+              0: enhancedUrl
+            }));
+            setModalImageUrl(null);
+          }}
+        />
+      )}
     </div>
   );
 };
