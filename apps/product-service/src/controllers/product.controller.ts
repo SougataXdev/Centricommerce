@@ -296,9 +296,6 @@ export const createProduct = async (req: SellerRequest, res: Response) => {
         field: issue.path.join('.'),
         message: issue.message,
       }));
-      console.error('Validation errors:', fieldErrors);
-      console.error('Raw body:', req.body);
-
       return res
         .status(400)
         .json({ message: 'Validation error', errors: fieldErrors });
