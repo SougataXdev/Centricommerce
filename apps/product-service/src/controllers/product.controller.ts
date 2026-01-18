@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { z } from 'zod';
 import prisma from '../../../../libs/prisma/index';
 import { imagekit } from '../../../../libs/imagekit';
@@ -99,6 +99,139 @@ export const getDiscountCodes = async (req: SellerRequest, res: Response) => {
     return res.status(200).json(discountCodes);
   } catch (error) {
     console.error('Error fetching discount codes:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const getSellerProducts = async (
+  req: SellerRequest,
+  res: Response
+) => {
+  const sellerId = req.user?.id;
+
+  if (!sellerId || req.user?.role !== 'seller') {
+    return res.status(403).json({ message: 'Seller authentication required' });
+  }
+
+  try {
+    const products = await prisma.products.findMany({
+      where: {
+        sellerId,
+        isDeleted: false,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      select: {
+        id: true,
+        productTitle: true,
+        shortDescription: true,
+        tags: true,
+        warranty: true,
+        brand: true,
+        slug: true,
+        videoUrl: true,
+        category: true,
+        subCategory: true,
+        regularPrice: true,
+        salePrice: true,
+        stock: true,
+        cashOnDelivery: true,
+        sizes: true,
+        colors: true,
+        custom_specifications: true,
+        images: true,
+        primaryImage: true,
+        discountCodes: true,
+        rating: true,
+        totalReviews: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        publishedAt: true,
+  deletedAt: true,
+      },
+    });
+
+    const normalizedProducts = products.map((product) => {
+      const colors = Array.isArray(product.colors)
+        ? product.colors.filter((color): color is string => typeof color === 'string')
+        : [];
+
+      const images = Array.isArray(product.images)
+        ? product.images
+            .map((image) => {
+              if (image && typeof image === 'object') {
+                const maybeRecord = image as Record<string, unknown>;
+                const fileId = typeof maybeRecord.fileId === 'string' ? maybeRecord.fileId : undefined;
+                const fileUrl =
+                  typeof maybeRecord.file_url === 'string'
+                    ? maybeRecord.file_url
+                    : typeof maybeRecord.url === 'string'
+                    ? maybeRecord.url
+                    : undefined;
+
+                if (fileId || fileUrl) {
+                  return {
+                    fileId: fileId ?? undefined,
+                    file_url: fileUrl ?? undefined,
+                  };
+                }
+              }
+              return undefined;
+            })
+            .filter(
+              (
+                img
+              ): img is { fileId: string | undefined; file_url: string | undefined } =>
+                Boolean(img && (img.fileId || img.file_url))
+            )
+        : [];
+
+      const derivedPrimaryImage =
+        typeof product.primaryImage === 'string' && product.primaryImage.trim().length > 0
+          ? product.primaryImage
+          : images[0]?.file_url ?? null;
+
+      const deletedAtValue =
+        'deletedAt' in product
+          ? ((product as { deletedAt?: Date | null }).deletedAt?.toISOString?.() ?? null)
+          : null;
+
+      return {
+        id: product.id,
+        productTitle: product.productTitle,
+        shortDescription: product.shortDescription,
+        tags: product.tags,
+        warranty: product.warranty,
+        brand: product.brand,
+        slug: product.slug,
+        videoUrl: product.videoUrl,
+        category: product.category,
+        subCategory: product.subCategory,
+        regularPrice: product.regularPrice,
+        salePrice: product.salePrice,
+        stock: product.stock,
+        cashOnDelivery: product.cashOnDelivery,
+        sizes: product.sizes,
+        colors,
+        custom_specifications: product.custom_specifications,
+        images,
+        primaryImage: derivedPrimaryImage,
+        discountCodes: product.discountCodes,
+        rating: product.rating,
+        totalReviews: product.totalReviews,
+        status: product.status,
+        createdAt: product.createdAt?.toISOString?.() ?? null,
+        updatedAt: product.updatedAt?.toISOString?.() ?? null,
+        publishedAt: product.publishedAt?.toISOString?.() ?? null,
+        deletedAt: deletedAtValue,
+      };
+    });
+
+    return res.status(200).json({ products: normalizedProducts });
+  } catch (error) {
+    console.error('Error fetching seller products:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -311,3 +444,153 @@ export const createProduct = async (req: SellerRequest, res: Response) => {
     });
   }
 };
+
+export const deleteProduct = async (req: SellerRequest, res: Response) => {
+  const sellerId = req.user?.id;
+  const { id } = req.params;
+
+  if (!sellerId || req.user?.role !== 'seller') {
+    return res.status(403).json({ message: 'Seller authentication required' });
+  }
+
+  if (!id) {
+    return res.status(400).json({ message: 'Product ID is required' });
+  }
+
+  try {
+    const product = (await prisma.products.findUnique({
+      where: { id },
+      select: {
+        sellerId: true,
+        isDeleted: true,
+        deletedAt: true,
+      },
+    })) as (typeof prisma.products extends { findUnique: (...args: any) => any }
+      ? { sellerId: string; isDeleted: boolean; deletedAt?: Date | null }
+      : never) | null;
+
+    if (!product || product.sellerId !== sellerId) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    if (product.isDeleted) {
+      return res.status(200).json({
+        success: true,
+        message: 'Product is already scheduled for deletion',
+        deletedAt: product.deletedAt ?? null,
+      });
+    }
+
+    const deletionTimestamp = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    const deletedProduct = (await prisma.products.update({
+      where: { id },
+      data: {
+        isDeleted: true,
+        status: 'draft',
+        // Cast until Prisma client regenerated with deletedAt column
+        deletedAt: deletionTimestamp,
+      } as any,
+    })) as { deletedAt?: Date | null };
+
+    return res.status(200).json({
+      success: true,
+      message: 'Product is scheduled for deletion in 24 hours. You can restore it within this window.',
+      deletedAt: deletedProduct.deletedAt ?? deletionTimestamp,
+    });
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const restoreProduct = async (req: SellerRequest, res: Response) => {
+  const sellerId = req.user?.id;
+  const { id } = req.params;
+
+  if (!sellerId || req.user?.role !== 'seller') {
+    return res.status(403).json({ message: 'Seller authentication required' });
+  }
+
+  if (!id) {
+    return res.status(400).json({ message: 'Product ID is required' });
+  }
+
+  try {
+    const product = (await prisma.products.findUnique({
+      where: { id },
+      select: {
+        sellerId: true,
+        isDeleted: true,
+        deletedAt: true,
+      },
+    })) as (typeof prisma.products extends { findUnique: (...args: any) => any }
+      ? { sellerId: string; isDeleted: boolean; deletedAt?: Date | null }
+      : never) | null;
+
+    if (!product || product.sellerId !== sellerId) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    if (!product.isDeleted) {
+      return res.status(200).json({
+        success: true,
+        message: 'Product is already active',
+      });
+    }
+
+    const restoredProduct = (await prisma.products.update({
+      where: { id },
+      data: {
+        isDeleted: false,
+        deletedAt: null,
+        status: 'draft',
+      } as any,
+      select: {
+        id: true,
+        status: true,
+        deletedAt: true,
+        isDeleted: true,
+      },
+    })) as { id: string; status: string; deletedAt: Date | null; isDeleted: boolean };
+
+    return res.status(200).json({
+      success: true,
+      message: 'Product restored successfully',
+      product: {
+        id: restoredProduct.id,
+        status: restoredProduct.status,
+        deletedAt: restoredProduct.deletedAt,
+        isDeleted: restoredProduct.isDeleted,
+      },
+    });
+  } catch (error) {
+    console.error('Error restoring product:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+export const getAllProducts = async(req:Request , res:Response , next:NextFunction)=>{
+      try {
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 20 ;
+        const skip = (page-1) *limit;
+        const type = req.query.type;
+        const baseFilter = {
+          OR:[{
+            strating_date:null,
+
+          },
+        {
+          ending_date:null
+        },
+        
+      ]
+        };
+
+        const orderBy:Prisma.ProductsOrderByWithRelationInput = type === "latest" ? {createdAt:"desc" as Prisma.SortOrder}  : {totalSales:"desc" as Prisma.SortOrder}
+      } catch (error) {
+        
+      }
+}

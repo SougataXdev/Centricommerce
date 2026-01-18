@@ -11,7 +11,7 @@ import {
   validateVideoUrl,
   validatePrice,
 } from '@/utils/validators';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   ChevronRight,
   ChevronDown,
@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { motion } from 'framer-motion';
 
 interface ProductFormData {
   productTitle: string;
@@ -74,7 +75,6 @@ const ProductCreatePage = () => {
   const [isChanged, setIsChanged] = useState(false);
   const [images, setImages] = useState<Array<File | null>>([null]);
   const [uploadedImageData, setUploadedImageData] = useState<Array<{ fileId: string; file_url: string } | null>>([null]);
-  const [loading, setLoading] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [showSpecifications, setShowSpecifications] = useState<boolean>(false);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
@@ -196,64 +196,63 @@ const ProductCreatePage = () => {
     });
   }, [draftSavedAt]);
 
-  const onsubmit = async (formData: ProductFormData) => {
-    try {
-      setLoading(true);
-      
-      const images = uploadedImageData
-        .filter((img) => img !== null && img.file_url)
-        .map((img) => ({
-          fileId: img!.fileId,
-          file_url: img!.file_url,
-        }));
-
-      const transformedData = {
-        productTitle: formData.productTitle,
-        shortDescription: formData.shortDescription,
-        tags: formData.tags,
-        warranty: formData.warranty,
-        slug: formData.slug,
-        brand: formData.brand,
-        category: formData.category,
-        subCategory: formData.subCategory,
-        colors: formData.colors,
-        images: images, 
-        custom_specifications: formData.custom_specifications,
-        cashOnDelivery: formData.cashOnDelivery === 'yes', 
-        videoUrl: formData.videoUrl || '', 
-        regularPrice: Number(formData.regularPrice),
-        salePrice: Number(formData.salePrice),
-        stock: Number(formData.stock),
-        sizes: formData.sizes,
-        discountCode: formData.discountCodes || undefined, 
-        primaryImage: enhancedImages[0] || undefined, 
-      };
-
+  const createProductMutation = useMutation({
+    mutationFn: async (transformedData: any) => {
       const res = await axiosInstance.post('/products/api/create-product', transformedData);
-      console.log('Create product response:', res);
+      return res.data;
+    },
+    onSuccess: () => {
+      // Reset form
+      reset(createDefaultValues());
+      setImages([null]);
+      setUploadedImageData([null]);
+      setEnhancedImages({});
+      setIsChanged(false);
       
-      // Success handling
-      if (res.data.success) {
-        // Reset form
-        reset(createDefaultValues());
-        setImages([null]);
-        setUploadedImageData([null]);
-        setEnhancedImages({});
-        setIsChanged(false);
-        
-        if (typeof window !== 'undefined') {
-          window.localStorage.removeItem(DRAFT_STORAGE_KEY);
-        }
-        
-        alert('Product created successfully!');
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(DRAFT_STORAGE_KEY);
       }
-    } catch (error: any) {
+      
+      alert('Product created successfully!');
+    },
+    onError: (error: any) => {
       console.error('Error creating product:', error);
       const errorMessage = error.response?.data?.message || 'Failed to create product';
       alert(`Error: ${errorMessage}`);
-    } finally {
-      setLoading(false);
-    }
+    },
+  });
+
+  const onsubmit = async (formData: ProductFormData) => {
+    const images = uploadedImageData
+      .filter((img) => img !== null && img.file_url)
+      .map((img) => ({
+        fileId: img!.fileId,
+        file_url: img!.file_url,
+      }));
+
+    const transformedData = {
+      productTitle: formData.productTitle,
+      shortDescription: formData.shortDescription,
+      tags: formData.tags,
+      warranty: formData.warranty,
+      slug: formData.slug,
+      brand: formData.brand,
+      category: formData.category,
+      subCategory: formData.subCategory,
+      colors: formData.colors,
+      images: images, 
+      custom_specifications: formData.custom_specifications,
+      cashOnDelivery: formData.cashOnDelivery === 'yes', 
+      videoUrl: formData.videoUrl || '', 
+      regularPrice: Number(formData.regularPrice),
+      salePrice: Number(formData.salePrice),
+      stock: Number(formData.stock),
+      sizes: formData.sizes,
+      discountCode: formData.discountCodes || undefined, 
+      primaryImage: enhancedImages[0] || undefined, 
+    };
+
+    await createProductMutation.mutateAsync(transformedData);
   };
 
   type UploadedImageData = {
@@ -386,8 +385,13 @@ const ProductCreatePage = () => {
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <header className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm backdrop-blur">
+    <div className="h-full flex flex-col gap-6">
+      <motion.header 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white via-white to-slate-50/30 p-6 shadow-soft backdrop-blur"
+      >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center text-xs sm:text-sm text-slate-500">
@@ -401,39 +405,51 @@ const ProductCreatePage = () => {
               <ChevronRight size={14} className="mx-2 opacity-60" />
               <span className="font-semibold text-slate-900">Create</span>
             </div>
-            <div className="mt-3 flex items-center gap-2">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-900 text-white">
-                <Sparkles className="h-4 w-4" />
-              </span>
+            <div className="mt-3 flex items-center gap-3">
+              <motion.span 
+                whileHover={{ rotate: 360, scale: 1.1 }}
+                transition={{ duration: 0.5 }}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-soft"
+              >
+                <Sparkles className="h-5 w-5" />
+              </motion.span>
               <div>
-                <h1 className="text-2xl font-semibold text-slate-900">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent">
                   Create product
                 </h1>
-                <p className="text-sm text-slate-500">
-                  Craft a compelling listing with rich media, pricing, and
-                  detailed specs.
+                <p className="mt-1 text-sm text-slate-500">
+                  Craft a compelling listing with rich media, pricing, and detailed specs.
                 </p>
               </div>
             </div>
           </div>
           {hasUnsavedChanges && (
-            <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
-              <span className="h-2 w-2 rounded-full bg-amber-500" />
+            <motion.span 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-700"
+            >
+              <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
               Unsaved changes
-            </span>
+            </motion.span>
           )}
         </div>
-      </header>
+      </motion.header>
 
       <form
         onSubmit={handleSubmit(onsubmit)}
-        className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]"
+        className="flex-1 grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]"
       >
         <section className="space-y-6">
-          <div className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-sm backdrop-blur">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="card-hover p-6"
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">
                   Product overview
                 </p>
                 <h2 className="mt-2 text-lg font-semibold text-slate-900">
@@ -455,7 +471,7 @@ const ProductCreatePage = () => {
                   {...register('productTitle', {
                     required: 'Product title is required',
                   })}
-                  className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  className="input-primary mt-2"
                 />
                 {errors.productTitle && (
                   <p className="mt-1 text-xs text-red-500">
@@ -474,7 +490,7 @@ const ProductCreatePage = () => {
                     required: 'Short description is required',
                     maxLength: { value: 500, message: 'Max 500 characters' },
                   })}
-                  className="mt-2 min-h-[120px] w-full rounded-2xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 placeholder:text-slate-400 transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  className="input-primary mt-2 min-h-[120px]"
                 />
                 <p className="mt-1 text-xs text-slate-500">
                   Appears in quick views, search cards, and social shares.
@@ -596,9 +612,14 @@ const ProductCreatePage = () => {
                 )}
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-sm backdrop-blur">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+            className="card-hover p-6"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -759,9 +780,14 @@ const ProductCreatePage = () => {
                 )}
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-sm backdrop-blur">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+            className="card-hover p-6"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -855,9 +881,14 @@ const ProductCreatePage = () => {
                 )}
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-sm backdrop-blur">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.4 }}
+            className="card-hover p-6"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -908,9 +939,14 @@ const ProductCreatePage = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-sm backdrop-blur">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.5 }}
+            className="card-hover p-6"
+          >
             <button
               type="button"
               onClick={() => setShowSpecifications((prev) => !prev)}
@@ -945,11 +981,16 @@ const ProductCreatePage = () => {
                 more tailored specs.
               </p>
             )}
-          </div>
+          </motion.div>
         </section>
 
         <aside className="space-y-6">
-          <div className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-sm backdrop-blur">
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="card-hover p-6"
+          >
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -976,9 +1017,14 @@ const ProductCreatePage = () => {
                 enhancedImageUrl={enhancedImages[0]}
               />
             </div>
-          </div>
+          </motion.div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-sm backdrop-blur">
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="card-hover p-6"
+          >
             <div className="flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
                 <Info className="h-5 w-5" />
@@ -1001,9 +1047,14 @@ const ProductCreatePage = () => {
                 badges.
               </li>
             </ul>
-          </div>
+          </motion.div>
 
-          <div className="rounded-3xl border border-slate-200 bg-slate-900 p-6 text-white shadow-sm">
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-white shadow-large"
+          >
             <h2 className="text-lg font-semibold">Ready to launch?</h2>
             <p className="mt-1 text-sm text-slate-200/80">
               Review your details before publishing. You can always edit after
@@ -1012,10 +1063,10 @@ const ProductCreatePage = () => {
             <div className="mt-6 space-y-3">
               <button
                 type="submit"
-                disabled={loading || isSubmitting}
+                disabled={createProductMutation.isPending || isSubmitting}
                 className="flex w-full items-center justify-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:bg-white/60 disabled:text-slate-500"
               >
-                {(loading || isSubmitting) && (
+                {(createProductMutation.isPending || isSubmitting) && (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 )}
                 Publish product
@@ -1037,7 +1088,7 @@ const ProductCreatePage = () => {
                 </p>
               )}
             </div>
-          </div>
+          </motion.div>
         </aside>
       </form>
 

@@ -186,6 +186,7 @@ model Products {
 
   rating       Float @default(0)
   totalReviews Int   @default(0)
+  totalSales   Int   @default(0)
 
   isDeleted Boolean @default(false)
   status    String  @default("active")
@@ -197,6 +198,7 @@ model Products {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   publishedAt DateTime?
+  deletedAt   DateTime?
 
   @@index([sellerId])
   @@index([category])

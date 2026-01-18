@@ -1,4 +1,5 @@
 import path from 'path';
+import "./jobs/product-cron"
 import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';

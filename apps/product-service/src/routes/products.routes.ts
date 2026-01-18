@@ -4,9 +4,12 @@ import {
   deleteDiscountCode,
   getCategories,
   getDiscountCodes,
+  getSellerProducts,
   uploadImageToImageKit,
   deleteImageFromImageKit,
   createProduct,
+  deleteProduct,
+  restoreProduct,
 } from '../controllers/product.controller';
 import { isSellerAuthenticated } from '../../../auth-service/src/middlewares/isAuthenticated';
 
@@ -24,5 +27,8 @@ router.delete(
 );
 
 router.post('/create-product', isSellerAuthenticated, createProduct);
+router.get('/products', isSellerAuthenticated, getSellerProducts);
+router.delete('/products/:id', isSellerAuthenticated, deleteProduct);
+router.patch('/products/:id/restore', isSellerAuthenticated, restoreProduct);
 
 export default router;

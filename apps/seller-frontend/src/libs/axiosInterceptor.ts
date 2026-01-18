@@ -37,13 +37,11 @@ const handleLogout = () => {
   }
 };
 
-// ✅ Request interceptor (reserved for future request customizations)
 axiosInstance.interceptors.request.use(
   (config) => config,
   (error) => Promise.reject(error)
 );
 
-// ✅ Response interceptor for token refresh
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (

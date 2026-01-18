@@ -25,6 +25,7 @@ import {
   ShoppingBag,
   X,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import useSeller from '@/hooks/useSeller';
 
 type NavItem = {
@@ -48,7 +49,7 @@ const navItems: NavItem[] = [
   {
     label: 'All Products',
     icon: Boxes,
-    href: '/dashboard/products',
+    href: '/dashboard/all-products',
     excludePaths: ['/dashboard/products/new'],
   },
   {
@@ -138,43 +139,61 @@ function SidebarContent({
   };
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm backdrop-blur">
+    <div className="h-full flex flex-col">
       {showProfile && (
-        <div className="mb-8 flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-base font-semibold text-blue-600">
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mb-6 flex items-center gap-3 px-2"
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-600 text-base font-bold text-white shadow-soft">
             {sellerProfile.initials}
           </div>
           <div>
-            <p className="text-sm font-medium text-slate-900">
+            <p className="text-sm font-semibold text-slate-900">
               {sellerProfile.name}
             </p>
             <p className="text-xs text-slate-500">Seller workspace</p>
           </div>
-        </div>
+        </motion.div>
       )}
 
-      <nav className="flex flex-col gap-1">
-        {navItems.map((item) => {
+      <nav className="flex flex-col gap-1.5">
+        {navItems.map((item, index) => {
           const Icon = item.icon;
           const active = isActiveRoute(pathname, item);
           return (
-            <Link
+            <motion.div
               key={item.label}
-              href={item.href}
-              onClick={onNavigate}
-              className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition hover:bg-blue-50 hover:text-blue-600 ${
-                item.label === 'Logout'
-                  ? 'mt-4 border-t border-slate-100 pt-4 text-rose-600 hover:bg-rose-50 hover:text-rose-600'
-                  : ''
-              } ${
-                active
-                  ? 'bg-slate-900 text-white shadow-sm hover:bg-slate-900/90 hover:text-white'
-                  : 'text-slate-600'
-              }`}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.2, delay: index * 0.03 }}
             >
-              <Icon className="h-4 w-4" />
-              <span>{item.label}</span>
-            </Link>
+              <Link
+                href={item.href}
+                onClick={onNavigate}
+                className={`group relative flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
+                  item.label === 'Logout'
+                    ? 'mt-4 border-t border-slate-200/60 pt-4 text-rose-600 hover:bg-rose-50/80 hover:text-rose-700'
+                    : ''
+                } ${
+                  active
+                    ? 'bg-slate-900 text-white shadow-soft'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                {active && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute inset-0 bg-slate-900 rounded-xl shadow-soft"
+                    transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+                  />
+                )}
+                <Icon className={`h-5 w-5 relative z-10 transition-transform duration-200 ${active ? '' : 'group-hover:scale-110'}`} />
+                <span className="relative z-10">{item.label}</span>
+              </Link>
+            </motion.div>
           );
         })}
       </nav>
@@ -221,59 +240,79 @@ export default function DashboardLayout({
   }, [mobileNavOpen]);
 
   const overlay = useMemo(
-    () =>
-      mobileNavOpen ? (
-        <div className="fixed inset-0 z-50 flex items-start justify-end bg-slate-900/40 backdrop-blur-sm lg:hidden">
-          <button
-            type="button"
-            aria-label="Close navigation"
-            className="absolute inset-0 h-full w-full"
-            onClick={handleClose}
-          />
-          <div className="relative z-10 flex h-full w-[min(20rem,85%)] max-h-screen flex-col bg-white/95 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-100 text-sm font-semibold text-blue-600">
-                  {sellerProfile.initials}
+    () => (
+      <AnimatePresence>
+        {mobileNavOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex items-start justify-end bg-slate-900/40 backdrop-blur-sm lg:hidden"
+          >
+            <button
+              type="button"
+              aria-label="Close navigation"
+              className="absolute inset-0 h-full w-full"
+              onClick={handleClose}
+            />
+            <motion.div 
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative z-10 flex h-full w-[min(20rem,85%)] max-h-screen flex-col bg-white shadow-2xl"
+            >
+              <div className="flex items-center justify-between border-b border-slate-200/60 px-6 py-4 bg-white/95 backdrop-blur-sm">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-600 text-sm font-bold text-white shadow-soft">
+                    {sellerProfile.initials}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      Navigation
+                    </p>
+                    <p className="text-xs text-slate-500">Quick access</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">
-                    Navigation
-                  </p>
-                  <p className="text-xs text-slate-500">Quick access</p>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 active:scale-95"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={handleClose}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto px-6 pb-8 pt-6">
-              <SidebarContent
-                pathname={pathname}
-                onNavigate={handleClose}
-                showProfile={false}
-              />
-            </div>
-          </div>
-        </div>
-      ) : null,
-    [handleClose, mobileNavOpen, pathname]
+              <div className="flex-1 overflow-y-auto px-6 pb-8 pt-6 scrollbar-custom">
+                <SidebarContent
+                  pathname={pathname}
+                  onNavigate={handleClose}
+                  showProfile={false}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    ),
+    [handleClose, mobileNavOpen, pathname, sellerProfile.initials]
   );
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="sticky top-0 z-40 border-b border-slate-200 bg-slate-50/80 px-4 py-4 backdrop-blur lg:hidden">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-slate-50 to-slate-100">
+      {/* Mobile Header */}
+      <motion.div 
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="fixed top-0 left-0 right-0 z-40 border-b border-slate-200/60 bg-white/90 px-4 py-3 backdrop-blur-md shadow-xs lg:hidden"
+      >
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-base font-semibold text-blue-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-600 text-sm font-bold text-white shadow-soft">
               {sellerProfile.initials}
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-900">
+              <p className="text-sm font-semibold text-slate-900">
                 {sellerProfile.name}
               </p>
               <p className="text-xs text-slate-500">Seller workspace</p>
@@ -282,24 +321,40 @@ export default function DashboardLayout({
           <button
             type="button"
             onClick={toggleMobileNav}
-            className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
+            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-xs transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 active:scale-95"
             aria-label="Toggle navigation"
           >
             <Menu className="h-4 w-4" />
-            Menu
+            <span>Menu</span>
           </button>
         </div>
-      </div>
+      </motion.div>
 
       {overlay}
 
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 pb-12 pt-8 lg:flex-row lg:px-8">
-        <aside className="hidden lg:sticky lg:top-8 lg:block lg:max-h-[calc(100vh-4rem)] lg:w-72">
+      {/* Desktop Sidebar */}
+      <motion.aside 
+        initial={{ x: -20, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="hidden lg:flex lg:flex-col lg:w-72 xl:w-80 lg:border-r lg:border-slate-200/60 lg:bg-white/60 lg:backdrop-blur-md"
+      >
+        <div className="flex-1 overflow-y-auto p-6 scrollbar-custom">
           <SidebarContent pathname={pathname} />
-        </aside>
+        </div>
+      </motion.aside>
 
-        <main className="flex-1 space-y-8">{children}</main>
-      </div>
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto pt-16 lg:pt-0 scrollbar-custom">
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+          className="h-full p-4 lg:p-6 xl:p-8 space-y-6"
+        >
+          {children}
+        </motion.div>
+      </main>
     </div>
   );
 }

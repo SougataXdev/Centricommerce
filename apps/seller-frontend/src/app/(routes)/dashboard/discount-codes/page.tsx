@@ -366,8 +366,8 @@ const DiscountCodesPage = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      <header className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm backdrop-blur">
+    <div className="h-full flex flex-col gap-6">
+      <header className="rounded-2xl border border-slate-200 bg-white/95 p-6 shadow-sm backdrop-blur">
         <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-y-2 text-xs sm:text-sm text-slate-500">
@@ -383,15 +383,15 @@ const DiscountCodesPage = () => {
                 Discount Codes
               </span>
             </div>
-            <div className="mt-3 flex items-center gap-2">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-900 text-white">
-                <Percent className="h-4 w-4" />
+            <div className="mt-3 flex items-center gap-3">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900 text-white">
+                <Percent className="h-5 w-5" />
               </span>
               <div>
-                <h1 className="text-2xl font-semibold text-slate-900">
+                <h1 className="text-3xl font-bold text-slate-900">
                   Discount Codes
                 </h1>
-                <p className="text-sm text-slate-500">
+                <p className="mt-1 text-sm text-slate-500">
                   Manage and analyze promotional codes to keep your campaigns on
                   track.
                 </p>
@@ -400,13 +400,13 @@ const DiscountCodesPage = () => {
           </div>
           <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
             {isFetching && !showLoadingState ? (
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">
+              <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs text-slate-500">
                 Syncing latest data…
               </span>
             ) : null}
             <button
               type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white shadow-md transition-colors hover:bg-slate-800 hover:shadow-lg sm:w-auto"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-slate-800 hover:shadow-lg sm:w-auto"
               onClick={handleCreateClick}
             >
               <PlusIcon size={18} />
@@ -417,14 +417,14 @@ const DiscountCodesPage = () => {
       </header>
 
       {showLoadingState ? (
-        <div className="flex h-[40vh] items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white/60">
+        <div className="flex h-[40vh] items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white/60">
           <div className="flex flex-col items-center gap-3 text-slate-500">
             <Loader2 className="h-10 w-10 animate-spin text-slate-400" />
             <p className="text-sm font-medium">Fetching discount codes…</p>
           </div>
         </div>
       ) : showErrorState ? (
-        <div className="rounded-3xl border border-rose-200 bg-rose-50/80 p-6">
+        <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-6">
           <p className="text-sm font-medium text-rose-700">
             {queryErrorMessage}
           </p>
@@ -437,7 +437,7 @@ const DiscountCodesPage = () => {
           </button>
         </div>
       ) : showNoSellerState ? (
-        <div className="rounded-3xl border border-amber-200 bg-amber-50/70 p-6 text-center">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-6 text-center">
           <h2 className="text-lg font-semibold text-slate-800">
             Seller profile not found
           </h2>
@@ -456,7 +456,7 @@ const DiscountCodesPage = () => {
           </div>
         </div>
       ) : showEmptyState ? (
-        <div className="rounded-3xl border border-slate-200 bg-white/90 p-10 text-center shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white/90 p-10 text-center shadow-sm">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
             <Percent className="h-6 w-6" />
           </div>
@@ -514,7 +514,7 @@ const DiscountCodesPage = () => {
               return (
                 <article
                   key={code.id}
-                  className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-sm transition hover:-translate-y-1 hover:border-slate-300 hover:shadow-lg"
+                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white/95 p-6 shadow-sm transition hover:-translate-y-1 hover:border-slate-300 hover:shadow-lg"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -600,7 +600,7 @@ const DiscountCodesPage = () => {
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 backdrop-blur-sm"
           onClick={closeOnBackdrop}
         >
-          <div className="relative w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl">
+          <div className="relative w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 pb-4">
               <div>
                 <p className="text-xs uppercase tracking-wide text-slate-400">
@@ -753,7 +753,7 @@ const DiscountCodesPage = () => {
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 backdrop-blur-sm"
           onClick={handleDeleteBackdropClick}
         >
-          <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 pb-4">
               <div>
                 <p className="text-xs uppercase tracking-wide text-slate-400">
